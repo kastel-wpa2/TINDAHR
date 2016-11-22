@@ -76,7 +76,7 @@ class MgtPacketCounter(IPacketAnalyzer):
         return "type mgt"
 
     def analyze_packet(self, packet):
-        tipe = packet["WLAN"].fc_subtype.int_value
+        tipe = int(packet["WLAN"].fc_subtype)
         self._counter[tipe] += 1
 
         sys.stdout.write("\rDeauthentification packets: " + str(self._counter[
@@ -104,11 +104,11 @@ class DeauthCounter(IPacketAnalyzer):
         return "type mgt"
 
     def analyze_packet(self, packet):
-        tipe = packet["WLAN"].fc_subtype.int_value
+        tipe = int(packet["WLAN"].fc_subtype)
         self._counter[tipe] += 1
 
-        if packet["WLAN"].fc_subtype.int_value == 12:
-            reason_code = packet["WLAN_MGT"].fixed_reason_code.int_value
+        if int(packet["WLAN"].fc_subtype) == 12:
+            reason_code = int(packet["WLAN_MGT"].fixed_reason_code)
             if reason_code <= 535:
                 self._counter_reason_code[reason_code] += 1
 
@@ -117,6 +117,7 @@ class DeauthCounter(IPacketAnalyzer):
         sys.stdout.flush()
 
     def on_end(self):
+	print "\n\n========================"
         for (idx, count) in enumerate(self._counter_reason_code):
             if count == 0:
                 continue
