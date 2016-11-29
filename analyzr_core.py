@@ -27,11 +27,9 @@ class IPacketAnalyzer():
 
 class AnalyzrCore():
 
-    def __init__(self, packet_analyzer):
-        assert issubclass(type(packet_analyzer), IPacketAnalyzer)
-        self._packet_analyzer = packet_analyzer
-
-        atexit.register(self._packet_analyzer.on_end)
+    def __init__(self, packet_analyzer = None):
+        if (packet_analyzer != None):
+            self.register_handler(packet_analyzer)
 
         self._arg_parser = argparse.ArgumentParser()
         self._arg_parser.add_argument("-f, --file", dest="filename", default="",
@@ -42,6 +40,12 @@ class AnalyzrCore():
                                       help="Filter used during capturing/parsing PCAP file")
 
         self._parsed_options = None
+
+    def register_handler(self, packet_analyzer):
+        assert issubclass(type(packet_analyzer), IPacketAnalyzer)
+        self._packet_analyzer = packet_analyzer
+
+        atexit.register(self._packet_analyzer.on_end)
 
     def get_arg_parser(self):
         return self._arg_parser
