@@ -34,6 +34,7 @@ class MgtPacketCounter(IPacketAnalyzer):
         sys.stdout.flush()
 
     def on_end(self):
+        print "\n\n========================"
         for (idx, count) in enumerate(self._counter):
             if count == 0:
                 continue
