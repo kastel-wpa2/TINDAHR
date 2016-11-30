@@ -2,6 +2,7 @@ import argparse
 import pyshark
 import atexit
 import urllib2
+import sys
 from abc import ABCMeta, abstractmethod
 
 
@@ -55,10 +56,14 @@ class AnalyzrCore():
     def start(self):
         options = self.get_parsed_cli_options()
 
-        if options.filename != "":
-            self.read_from_file(options.filename)
-        else:
-            self.read_live(options.interface)
+        try: 
+            if options.filename != "":
+                self.read_from_file(options.filename)
+            else:
+                self.read_live(options.interface)
+        except KeyboardInterrupt:
+            print "Catched keyboard interrupt: exiting application."
+            sys.exit()
 
     def read_from_file(self, filename):
         try:

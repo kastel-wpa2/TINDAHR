@@ -24,7 +24,7 @@ class SSIDCatcher(IPacketAnalyzer):
         if ssid == "SSID: ":
             return
 
-        print wlan.sa + " -> " + wlan.da + " (" + ssid + ")"
+        print wlan.sa + " -> " + ssid
 
     def on_end(self):
         pass

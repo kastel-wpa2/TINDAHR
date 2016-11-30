@@ -18,8 +18,8 @@ class DeauthCounter(IPacketAnalyzer):
         return "type mgt"
 
     def analyze_packet(self, packet):
-        tipe = int(packet["WLAN"].fc_subtype)
-        self._counter[tipe] += 1
+        subtype = int(packet["WLAN"].fc_subtype)
+        self._counter[subtype] += 1
 
         if int(packet["WLAN"].fc_subtype) == 12:
             reason_code = int(packet["WLAN_MGT"].fixed_reason_code)
