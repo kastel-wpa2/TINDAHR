@@ -38,7 +38,11 @@ class MgtPacketCounter(IPacketAnalyzer):
         for (idx, count) in enumerate(self._counter):
             if count == 0:
                 continue
-            print self.MGT_TYPES_NAMES[idx] + ":\t " + str(count)
+            if(self.MGT_TYPES_NAMES[idx] != ""):
+                prefix = self.MGT_TYPES_NAMES[idx] 
+            else:
+                prefix = "Code " + str(idx)
+            print prefix + ":\t " + str(count)
 
 mgt_type_counter = MgtPacketCounter()
 core = AnalyzrCore(mgt_type_counter)
