@@ -31,21 +31,25 @@ class IPacketAnalyzer():
 
 class AnalyzrCore():
 
-    def __init__(self, packet_analyzer):
-        assert issubclass(type(packet_analyzer), IPacketAnalyzer)
-        self._packet_analyzer = packet_analyzer
-
-        atexit.register(self._packet_analyzer.on_end)
+    def __init__(self, packet_analyzer=None):
+        if (packet_analyzer != None):
+            self.register_handler(packet_analyzer)
 
         self._arg_parser = argparse.ArgumentParser()
         self._arg_parser.add_argument("-f, --file", dest="filename", default="",
                                       help="PCAP file to load", metavar="FILE")
-        self._arg_parser.add_argument("-l, --live", dest="interface", default=None, nargs = "?",
+        self._arg_parser.add_argument("-l, --live", dest="interface", default="", nargs = "?",
                                       help="Live interface to use", metavar="LIVE_INTERFACE")
         self._arg_parser.add_argument("--filter", dest="filter", default=None,
                                       help="Filter used during capturing/parsing PCAP file")
 
         self._parsed_options = None
+
+    def register_handler(self, packet_analyzer):
+        assert issubclass(type(packet_analyzer), IPacketAnalyzer)
+        self._packet_analyzer = packet_analyzer
+
+        atexit.register(self._packet_analyzer.on_end)
 
     def get_arg_parser(self):
         return self._arg_parser
@@ -59,7 +63,7 @@ class AnalyzrCore():
     def start(self):
         options = self.get_parsed_cli_options()
 
-        try: 
+        try:
             if options.filename != "":
                 self.read_from_file(options.filename)
             else:
@@ -84,7 +88,7 @@ class AnalyzrCore():
     def read_live(self, interface):
         if(interface == None or interface == ""):
             interface = self._select_interface(False)
-        
+
         print "Reading from live capture..."
         capture = pyshark.LiveCapture(
             interface=interface, bpf_filter=self._packet_analyzer.get_bpf_filter())
@@ -93,37 +97,42 @@ class AnalyzrCore():
             self._process_packet(packet)
 
     def _select_from_airodump(self):
-        interface = self._select_interface(False);
+        interface = self._select_interface(False)
         try:
             airodump = Popen(["sudo", "airodump-ng", interface]).communicate()
         except KeyboardInterrupt:
             print "Placeholder"
 
     def _select_interface(self, secdond_try):
-        iwconfig = Popen(["iwconfig"], stdout=PIPE, stderr=open(os.devnull, "w"))
+        iwconfig = Popen(["iwconfig"], stdout=PIPE,
+                         stderr=open(os.devnull, "w"))
         monitor = []
         regular = []
         for line in iwconfig.communicate()[0].split('\n'):
-            if len(line) == 0: 
+            if len(line) == 0:
                 continue
-            if ord(line[0]) != 32:  
-                interface = line[:line.find(' ')] 
-                if line.find('Mode:Monitor') != -1: #if we find the string Mode:Monitor put the adapter in the monitor array
+            if ord(line[0]) != 32:
+                interface = line[:line.find(' ')]
+                # if we find the string Mode:Monitor put the adapter in the
+                # monitor array
+                if line.find('Mode:Monitor') != -1:
                     monitor.append(interface)
                 else:
                     regular.append(interface)
-        
+
         if(len(monitor) == 0):
             if(len(regular) == 0):
-                sys.stderr.write("No interface with wireless extensions were found.")
-                sys.stderr.flush()  
+                sys.stderr.write(
+                    "No interface with wireless extensions were found.")
+                sys.stderr.flush()
                 raise Exception
             print "No interface in monitor mode found. Following interfaces were found:"
             print regular
             if(secdond_try):
-                sys.stderr.write("Even after enabling monitor mode on a specific device, there was no device found with monitor mode activated.")
+                sys.stderr.write(
+                    "Even after enabling monitor mode on a specific device, there was no device found with monitor mode activated.")
                 sys.stderr.flush()
-                
+
             else:
                 interface = self._enable_monitor_mode(regular)
         else:
@@ -135,8 +144,9 @@ class AnalyzrCore():
         return interface
 
     def _enable_monitor_mode(self, interfaces):
-        print "Enabling monitor mode on first interface: ", interfaces[0] 
-        airmon = Popen(["airmon-ng", "start", interfaces[0]], stdout=PIPE, stderr=open(os.devnull, "w"))
+        print "Enabling monitor mode on first interface: ", interfaces[0]
+        airmon = Popen(["airmon-ng", "start", interfaces[0]],
+                       stdout=PIPE, stderr=open(os.devnull, "w"))
         airmon.communicate()
         print "Checking for interfaces again."
         return self._select_interface(True)
