@@ -1,15 +1,16 @@
 #! /usr/bin/env python
 
 import sys
+import os
 from analyzr_core import *
 import re
 
 
 class SSIDCatcher(IPacketAnalyzer):
+    _probe_requests = {}
 
     def __init__(self, mac_filter):
         print "Running SSIDCatcher"
-
         self._mac_filter = mac_filter
 
     def get_display_filter(self):
@@ -30,10 +31,22 @@ class SSIDCatcher(IPacketAnalyzer):
         if self._mac_filter != None and re.match(self._mac_filter, str(wlan.sa)) == None:
             return
 
-        print wlan.sa + " -> " + ssid
+        if wlan.sa not in self._probe_requests:
+        	self._probe_requests[wlan.sa] = set()
+
+  		self._probe_requests[wlan.sa].add(ssid)
+  		self._refresh()
+
+    def _refresh(self):
+    	os.system("clear")
+       	for station in self._probe_requests:
+    		line = "Client " + station + ": \t"
+    		for ssid in self._probe_requests[station]:
+    			line += ssid + ", "
+    		print line[:-2]
 
     def on_end(self):
-        pass
+    	pass
 
 
 core = AnalyzrCore()
