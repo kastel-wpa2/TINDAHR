@@ -9,13 +9,13 @@ class MgtPacketCounter(IPacketAnalyzer):
     _counter = [0] * 25
 
     def __init__(self):
-        self.MGT_TYPES_NAMES[0] = "Association request"
-        self.MGT_TYPES_NAMES[1] = "Association response"
-        self.MGT_TYPES_NAMES[4] = "Probe request"
-        self.MGT_TYPES_NAMES[5] = "Probe response"
-        self.MGT_TYPES_NAMES[8] = "Beacon"
-        self.MGT_TYPES_NAMES[11] = "Authentification"
-        self.MGT_TYPES_NAMES[12] = "Deauthentification"
+        self.MGT_TYPES_NAMES[0] = "Association request".ljust(20)
+        self.MGT_TYPES_NAMES[1] = "Association response".ljust(20)
+        self.MGT_TYPES_NAMES[4] = "Probe request".ljust(20)
+        self.MGT_TYPES_NAMES[5] = "Probe response".ljust(20)
+        self.MGT_TYPES_NAMES[8] = "Beacon".ljust(20)
+        self.MGT_TYPES_NAMES[11] = "Authentification".ljust(20)
+        self.MGT_TYPES_NAMES[12] = "Deauthentification".ljust(20)
 
         print "Running MgtPacketCounter"
 
@@ -35,13 +35,14 @@ class MgtPacketCounter(IPacketAnalyzer):
 
     def on_end(self):
         print "\n\n========================"
+
         for (idx, count) in enumerate(self._counter):
             if count == 0:
                 continue
             if(self.MGT_TYPES_NAMES[idx] != ""):
                 prefix = self.MGT_TYPES_NAMES[idx] 
             else:
-                prefix = "Code " + str(idx)
+                prefix = ("Code " + str(idx)).ljust(20)
             print prefix + ":\t " + str(count)
 
 mgt_type_counter = MgtPacketCounter()
