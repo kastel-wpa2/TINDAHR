@@ -83,7 +83,7 @@ class AnalyzrCore():
 
     def read_live(self, interface):
         if(interface == None or interface == ""):
-            interface = self._select_interface()
+            interface = self._select_interface(False)
         
         print "Reading from live capture..."
         capture = pyshark.LiveCapture(
@@ -93,13 +93,13 @@ class AnalyzrCore():
             self._process_packet(packet)
 
     def _select_from_airodump(self):
-        self._select_interface();
+        interface = self._select_interface(False);
         try:
-            airodump = Popen(["sudo", "airodump-ng", "wlan0mon"]).communicate()
+            airodump = Popen(["sudo", "airodump-ng", interface]).communicate()
         except KeyboardInterrupt:
             print "Placeholder"
 
-    def _select_interface(self):
+    def _select_interface(self, secdond_try):
         iwconfig = Popen(["iwconfig"], stdout=PIPE, stderr=open(os.devnull, "w"))
         monitor = []
         regular = []
@@ -116,11 +116,16 @@ class AnalyzrCore():
         if(len(monitor) == 0):
             if(len(regular) == 0):
                 sys.stderr.write("No interface with wireless extensions were found.")
-                sys.stderr.flush()
-                interface = ""
+                sys.stderr.flush()  
+                raise Exception
             print "No interface in monitor mode found. Following interfaces were found:"
             print regular
-            interface = self._enable_monitor_mode(regular)
+            if(secdond_try):
+                sys.stderr.write("Even after enabling monitor mode on a specific device, there was no device found with monitor mode activated.")
+                sys.stderr.flush()
+                
+            else:
+                interface = self._enable_monitor_mode(regular)
         else:
             print "Following interfaces in monitor mode found:"
             print monitor
@@ -134,7 +139,7 @@ class AnalyzrCore():
         airmon = Popen(["airmon-ng", "start", interfaces[0]], stdout=PIPE, stderr=open(os.devnull, "w"))
         airmon.communicate()
         print "Checking for interfaces again."
-        return self._select_interface()
+        return self._select_interface(True)
 
     def _process_packet(self, packet):
         self._packet_analyzer.analyze_packet(packet)
