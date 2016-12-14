@@ -86,6 +86,7 @@ class AnalyzrCore():
             self._process_packet(packet)
 
     def read_live(self, interface):
+        self._kill_processes()
         if(interface == None or interface == ""):
             interface = self._select_interface(False)
 
@@ -96,6 +97,10 @@ class AnalyzrCore():
         for packet in capture.sniff_continuously():
             self._process_packet(packet)
 
+    def _kill_processes(self):
+        print "Killing processes which may interfere the scanning process."
+        Popen(["sudo","airmon-ng", "check", "kill"]).communicate()
+        
     def _select_from_airodump(self):
         interface = self._select_interface(False)
         try:
@@ -145,9 +150,8 @@ class AnalyzrCore():
 
     def _enable_monitor_mode(self, interfaces):
         print "Enabling monitor mode on first interface: ", interfaces[0]
-        airmon = Popen(["airmon-ng", "start", interfaces[0]],
-                       stdout=PIPE, stderr=open(os.devnull, "w"))
-        airmon.communicate()
+        Popen(["airmon-ng", "start", interfaces[0]],
+               stdout=PIPE, stderr=open(os.devnull, "w")).communicate()
         print "Checking for interfaces again."
         return self._select_interface(True)
 
