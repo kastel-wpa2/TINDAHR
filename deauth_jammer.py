@@ -4,8 +4,9 @@ import threading
 import atexit
 
 class DeauthJammer(object): 
-    def __init__(self, access_point):
-        self._access_point = access_point
+    def __init__(self, ap_bssid, ap_ssid = None):
+        self._ap_ssid = ap_ssid
+        self._ap_bssid = ap_bssid
         self._threads = []
         atexit.register(self._on_end)
 
@@ -19,6 +20,7 @@ class DeauthJammer(object):
             jamThread.start()
         
     def _deauth_target(self, packet_count, target):
+        #Backend implementation here
         print target
 
     def _on_end(self):
@@ -27,5 +29,5 @@ class DeauthJammer(object):
 
 
 
-jammer = DeauthJammer("ssid")
+jammer = DeauthJammer("00:80:41:ae:fd:7e")
 jammer.jam(packet_count = 3, targets=["1", "2"])
