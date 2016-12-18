@@ -15,15 +15,19 @@ class DeauthJammer(object):
 
     def __init__(self, ap_bssid, iface="wlan0mon"):
         self._ap_bssid = ap_bssid
-        self._threads = []
         self._thread_event = threading.Event()
         self._thread_event.set()
+        self._thread_lock = threading.Lock()
+        
         # scapy.conf.iface =
         atexit.register(self._on_end)
         scapy.conf.iface = iface
         scapy.conf.verb = 0  # Non-verbose mode
 
     def jam(self, targets, packet_count=1):
+        self._threads_finished = 0
+        self._threads = list()
+
         if type(targets) is types.StringType:
             old_targets = targets
             targets = list()
@@ -39,7 +43,7 @@ class DeauthJammer(object):
 
         print "Number of operating threads : " + str(threading.activeCount())
         try:
-            while threading.activeCount() > 1:
+            while self._threads_finished < len(targets):
                 for thread in self._threads:
                     thread.join(.1)
         except KeyboardInterrupt:
@@ -68,6 +72,9 @@ class DeauthJammer(object):
             actually_sent = n
 
         print "Sent " + str(actually_sent + 1) + " packets to " + target
+
+        with self._thread_lock:
+            self._threads_finished += 1
 
     def _on_end(self):
         self._thread_event.clear()
