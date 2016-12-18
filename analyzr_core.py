@@ -30,6 +30,7 @@ class IPacketAnalyzer():
 
 
 class AnalyzrCore():
+    _vendor_lookup_cache = dict()
 
     def __init__(self, packet_analyzer=None):
         if (packet_analyzer != None):
@@ -160,7 +161,12 @@ class AnalyzrCore():
 
     @staticmethod
     def lookup_vendor_by_mac(vendor):
+        if vendor in AnalyzrCore._vendor_lookup_cache:
+            return AnalyzrCore._vendor_lookup_cache[vendor]
+
         try:
-            return urllib2.urlopen("http://api.macvendors.com/" + vendor).read()
+            resolved = urllib2.urlopen("http://api.macvendors.com/" + vendor).read()
+            AnalyzrCore._vendor_lookup_cache[vendor] = resolved
+            return resolved
         except Exception:
             return "N.A."
