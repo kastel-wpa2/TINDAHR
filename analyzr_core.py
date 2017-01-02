@@ -5,9 +5,11 @@ import urllib2
 import sys
 import subprocess
 import os
+import time
+import threading
 from subprocess import Popen, PIPE
 from abc import ABCMeta, abstractmethod
-
+import types
 
 class IPacketAnalyzer():
     __metaclass__ = ABCMeta
@@ -21,7 +23,7 @@ class IPacketAnalyzer():
         pass
 
     @abstractmethod
-    def analyze_packet(self, packet):
+    def analyze_packet(self, packet, channel):
         pass
 
     @abstractmethod
@@ -32,19 +34,23 @@ class IPacketAnalyzer():
 class AnalyzrCore():
     _vendor_lookup_cache = dict()
 
-    def __init__(self, packet_analyzer=None):
+    def __init__(self, packet_analyzer=None, channel_hopping=False):
         if (packet_analyzer != None):
             self.register_handler(packet_analyzer)
 
         self._arg_parser = argparse.ArgumentParser()
         self._arg_parser.add_argument("-f, --file", dest="filename", default="",
                                       help="PCAP file to load", metavar="FILE")
-        self._arg_parser.add_argument("-l, --live", dest="interface", default="", nargs = "?",
+        self._arg_parser.add_argument("-l, --live", dest="interface", default="", nargs="?",
                                       help="Live interface to use", metavar="LIVE_INTERFACE")
         self._arg_parser.add_argument("--filter", dest="filter", default=None,
                                       help="Filter used during capturing/parsing PCAP file")
+        self._arg_parser.add_argument("-c, --channel", dest="channel", default=0, help="Channel on which shall be listened in case of live capture", type=types.IntType)
 
         self._parsed_options = None
+        
+        self.current_channel = None
+        self._channel_hopping = channel_hopping
 
     def register_handler(self, packet_analyzer):
         assert issubclass(type(packet_analyzer), IPacketAnalyzer)
@@ -61,14 +67,14 @@ class AnalyzrCore():
 
         return self._parsed_options
 
-    def start(self):
+    def start(self, force_live_capture=False):
         options = self.get_parsed_cli_options()
 
         try:
-            if options.filename != "":
+            if options.filename != "" and not force_live_capture:
                 self.read_from_file(options.filename)
             else:
-                self.read_live(options.interface)
+                self.read_live(options.interface, options.channel)
         except KeyboardInterrupt:
             print "Catched keyboard interrupt: exiting application."
             sys.exit()
@@ -86,7 +92,7 @@ class AnalyzrCore():
         for packet in cap:
             self._process_packet(packet)
 
-    def read_live(self, interface):
+    def read_live(self, interface, channel):
         self._kill_processes()
         if(interface == None or interface == ""):
             interface = self._select_interface(False)
@@ -95,13 +101,24 @@ class AnalyzrCore():
         capture = pyshark.LiveCapture(
             interface=interface, bpf_filter=self._packet_analyzer.get_bpf_filter())
 
+        if self._channel_hopping and channel == 0:
+            channel = 1
+        else:
+            self._channel_hopping = False
+
+        AnalyzrCore.set_channel(interface, channel)
+        self.current_channel = channel
+
+        if self._channel_hopping:
+            self._start_channel_hopping(interface)
+
         for packet in capture.sniff_continuously():
             self._process_packet(packet)
 
     def _kill_processes(self):
         print "Killing processes which may interfere the scanning process."
-        Popen(["sudo","airmon-ng", "check", "kill"]).communicate()
-        
+        Popen(["sudo", "airmon-ng", "check", "kill"]).communicate()
+
     def _select_from_airodump(self):
         interface = self._select_interface(False)
         try:
@@ -157,7 +174,7 @@ class AnalyzrCore():
         return self._select_interface(True)
 
     def _process_packet(self, packet):
-        self._packet_analyzer.analyze_packet(packet)
+        self._packet_analyzer.analyze_packet(packet, self.current_channel)
 
     @staticmethod
     def lookup_vendor_by_mac(vendor):
@@ -165,8 +182,25 @@ class AnalyzrCore():
             return AnalyzrCore._vendor_lookup_cache[vendor]
 
         try:
-            resolved = urllib2.urlopen("http://api.macvendors.com/" + vendor).read()
+            resolved = urllib2.urlopen(
+                "http://api.macvendors.com/" + vendor).read()
             AnalyzrCore._vendor_lookup_cache[vendor] = resolved
             return resolved
         except Exception:
             return "N.A."
+
+    @staticmethod
+    def set_channel(interface, channel):
+        os.system("iwconfig %s channel %d" % (interface, channel))        
+
+    def _start_channel_hopping(self, interface, delay=1):
+        def channel_hopper():
+            while True:
+                for i in range(1, 15):
+                    AnalyzrCore.set_channel(interface, i)
+                    self.current_channel = i
+                    time.sleep(delay)
+
+        t = threading.Thread(target=channel_hopper)
+        t.daemon = True
+        t.start()

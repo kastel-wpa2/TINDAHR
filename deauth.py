@@ -17,7 +17,7 @@ class DeauthCounter(IPacketAnalyzer):
     def get_bpf_filter(self):
         return "type mgt"
 
-    def analyze_packet(self, packet):
+    def analyze_packet(self, packet, channel):
         subtype = int(packet["WLAN"].fc_subtype)
         self._counter[subtype] += 1
 

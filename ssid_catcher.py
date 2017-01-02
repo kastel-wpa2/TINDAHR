@@ -19,7 +19,7 @@ class SSIDCatcher(IPacketAnalyzer):
     def get_bpf_filter(self):
         return "subtype probereq"
 
-    def analyze_packet(self, packet):
+    def analyze_packet(self, packet, channel):
 		ssid = packet["WLAN_MGT"].ssid
 
 		wlan = packet["WLAN"]

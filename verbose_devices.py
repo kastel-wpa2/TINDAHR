@@ -19,7 +19,7 @@ class VerboseDeviceAnalyzer(IPacketAnalyzer):
     def get_bpf_filter(self):
         return "subtype probereq"
 
-    def analyze_packet(self, packet):
+    def analyze_packet(self, packet, channel):
         sa = packet["WLAN"].sa
         vendor = sa[0:8]
 
