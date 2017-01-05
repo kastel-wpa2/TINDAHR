@@ -1,2 +1,3 @@
 *.pyc
-.DS_Storec
+.DS_Store
+node_modules/

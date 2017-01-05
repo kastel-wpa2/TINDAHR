@@ -1,19 +1,57 @@
 <html>
-    <head>
-    <script type="text/javascript" src="/static/vendor/socket.io-1.4.5.js"></script>
-<script type="text/javascript" charset="utf-8">
-    var socket = io.connect('http://' + document.domain + ':' + location.port);
-    socket.on('connect', function() {
-        socket.emit("send_connections_list", {data: 'I\'m connected!'});
-    });
 
-    socket.on("connections_list", function (json) {
-        console.log(json);
-    })
-</script></head
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style>
+        body {
+            padding-top: 20px;
+        }
+    </style>
+
+    <link rel="stylesheet" href="/static/node_modules/bootstrap3/dist/css/bootstrap.min.css"></link>
+
+    <script type="text/javascript" src="/static/node_modules/jquery/dist/jquery.min.js"></script>
+    <script type="text/javascript" src="/static/node_modules/socket.io-client/dist/socket.io.min.js"></script>
+    <script type="text/javascript" src="/static/node_modules/vue/dist/vue.min.js"></script>
+
+    <script type="text/javascript" src="/static/script.js"></script>
+</head>
 
 <body>
-    <h1>Hello World from Python!</h1>
+    <div id="app" class="container-fluid">
+        <div class="well">
+            <button type="button" class="btn btn-primary" v-on:click="refresh">
+                <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span> Refresh list
+            </button>
+            <input type="checkbox" id="chkbx_auto_reload" v-model="autoReload">
+            <label for="checkbox">Auto reload</label>
+        </div>
+        <table class="table table-striped">
+            <tr>
+                <th>SA</th>
+                <th>DA</th>
+                <th>SSID</th>
+                <th>Age</th>
+                <th>Channel</th>
+                <th></th>
+            </tr>
+            <tr v-for="(entry, idx) in entries">
+                <td>{{ entry.sa }}</td>
+                <td>{{entry.da}}</td>
+                <td>{{entry.ssid}}</td>
+                <td>{{entry.age}} s</td>
+                <td>{{entry.channel}}</td>
+                <td style="text-align: right;">
+                    <button type="button" class="btn btn-default btn-sm" v-on:click="trigger_deauth_attack(idx)">
+                    <span class="glyphicon glyphicon-fire" aria-hidden="true"></span>
+                </button>
+                </td>
+            </tr>
+        </table>
+    </div>
 </body>
 
 </html>

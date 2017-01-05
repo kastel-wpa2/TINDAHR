@@ -113,6 +113,7 @@ class ConnectionsList():
                 "sa": tupel.sa,
                 "da": tupel.da,
                 "ssid": tupel.ssid,
+                "channel": tupel.channel,
                 "age": round(now - tupel.ts, 1)
             })
 
