@@ -29,7 +29,7 @@ class WebAdapter():
         self.start = start
 
     def _send_connections_list(self, _):
-        emit("connections_list", self._conn_list_instance.get_json_obj(), json=True)
+        emit("connections_list", self._conn_list_instance.get_as_popo(), json=True)
 
     def _start_deauth(self, _):
         pass

@@ -6,16 +6,19 @@ from analyzr_core import *
 import re
 import threading
 import time
+import copy
 
 from webserver import WebAdapter
 
 
 class ConnectionTupel():
 
-    def __init__(self, sa, da, channel):
+    def __init__(self, sa, da, channel, ssid="n.a."):
         self.sa = sa
         self.da = da
         self.channel = channel
+        self.ts = time.time()
+        self.ssid = ssid
 
     def swap_addresses(self):
         tmp = self.sa
@@ -29,19 +32,20 @@ class ConnectionTupel():
         return ((self.da == other.da and self.sa == other.sa) or (self.da == other.sa and self.sa == other.da)) and self.channel == other.channel
 
     def __str__(self):
-        return "%s <-> %s (channel %s)" % (self.sa, self.da, self.channel)
+        return "%s <-> %s (%s) (channel %s) (age %ss)" % (self.sa, self.da, self.ssid, self.channel, round(time.time() - self.ts, 1))
 
 
 class ConnectionsList():
 
     def __init__(self, on_new_handler, on_expired_handler):
-        self._list = dict()
+        self._list = set()
         self._on_new = on_new_handler
         self._on_expired = on_expired_handler
+        self._ssid_map = dict()
 
         def threadFn():
             while True:
-                time.sleep(20)
+                time.sleep(10)
                 self._check_for_expired()
 
         t = threading.Thread(target=threadFn)
@@ -53,7 +57,7 @@ class ConnectionsList():
 
         new = tupel in self._list
 
-        self._list[tupel] = time.time()  # timestamp in seconds
+        self._list = set([tupel]).union(self._list)  # timestamp in seconds
 
         if new:
             self._on_new(sa, da, channel)
@@ -63,27 +67,53 @@ class ConnectionsList():
     def _check_for_expired(self):
         now = time.time()
 
-        for tupel, ts in self._list.items():
-            if ts + 20 < now:
-                del self._list[tupel]
+        # we need this copy otherwise we change the size by deleting elements
+        # during iterating
+        shallow_copy = copy.copy(self._list)
+
+        for tupel in shallow_copy:
+            if tupel.ts + 20 < now:
+                self._list.remove(tupel)
                 self._on_expired(tupel.sa, tupel.da, tupel.channel)
 
     def __iter__(self):
         return self.next()
 
+    def add_ssid_for_mac(self, mac, ssid):
+        new = mac in self._ssid_map
+
+        self._ssid_map[mac] = ssid
+
+        return new
+
     def next(self):
-        for tupel in self._list:
+        # Create a shallow copy to prevent race conditions caused by another thread cleaning
+        # up expired entries and therefore causing a size-change during iteration of dictionary
+        shallow_copy = copy.copy(self._list)
+
+        for tupel in shallow_copy:
+            if tupel.ssid == "n.a.":
+                if tupel.sa in self._ssid_map:
+                    tupel.swap_addresses()
+                tupel.ssid = self._ssid_map.get(tupel.da, "n.a.")
+
             yield tupel
 
-    def get_json_obj(self):
+    def get_as_popo(self):
         popo = []
         now = time.time()
 
-        for tupel, ts in self._list.items():
+        for tupel in self._list:
+            if tupel.ssid == "n.a.":
+                if tupel.sa in self._ssid_map:
+                    tupel.swap_addresses()
+                tupel.ssid = self._ssid_map.get(tupel.da, "n.a.")
+
             popo.append({
                 "sa": tupel.sa,
                 "da": tupel.da,
-                "age": ts
+                "ssid": tupel.ssid,
+                "age": round(now - tupel.ts, 1)
             })
 
         return popo
@@ -97,7 +127,7 @@ class Tool(IPacketAnalyzer):
         self._con_list = ConnectionsList(
             self._new_entry_added, self._entry_expired)
         self._analyzr_core = analyzr_core
-        self._ssid_map = dict()
+        self._ssids_found = 0
 
         if use_cli:
             t = threading.Thread(target=self._refresh_cli)
@@ -148,7 +178,8 @@ class Tool(IPacketAnalyzer):
             if ssid == "SSID: ":
                 return
 
-            self._ssid_map[wlan.sa] = ssid
+            mac_had_no_known_ssid_before = self._con_list.add_ssid_for_mac(wlan.sa, ssid)
+            self._ssids_found += 1 if mac_had_no_known_ssid_before else 0
             return
 
         # Handle data frames
@@ -163,13 +194,10 @@ class Tool(IPacketAnalyzer):
     def _refresh_cli(self):
         while True:
             os.system("clear")
-            print "Items in ssid map: " + str(len(self._ssid_map)) + " | Listening on channel: " + str(self._analyzr_core.current_channel)
+            print "Items in ssid map: " + str(self._ssids_found) + " | Listening on channel: " + str(self._analyzr_core.current_channel)
 
             for tupel in self._con_list:
-                if tupel.sa in self._ssid_map:
-                    tupel.swap_addresses()
-
-                print tupel.sa + " <-> " + tupel.da + " (" + self._ssid_map.get(tupel.da, "n.a.") + ") (channel " + str(tupel.channel) + ")"
+                print tupel
 
             time.sleep(1)
 
