@@ -1,0 +1,19 @@
+<html>
+    <head>
+    <script type="text/javascript" src="/static/vendor/socket.io-1.4.5.js"></script>
+<script type="text/javascript" charset="utf-8">
+    var socket = io.connect('http://' + document.domain + ':' + location.port);
+    socket.on('connect', function() {
+        socket.emit("send_connections_list", {data: 'I\'m connected!'});
+    });
+
+    socket.on("connections_list", function (json) {
+        console.log(json);
+    })
+</script></head
+
+<body>
+    <h1>Hello World from Python!</h1>
+</body>
+
+</html>

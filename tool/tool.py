@@ -7,6 +7,8 @@ import re
 import threading
 import time
 
+from webserver import WebAdapter
+
 
 class ConnectionTupel():
 
@@ -73,11 +75,24 @@ class ConnectionsList():
         for tupel in self._list:
             yield tupel
 
+    def get_json_obj(self):
+        popo = []
+        now = time.time()
+
+        for tupel, ts in self._list.items():
+            popo.append({
+                "sa": tupel.sa,
+                "da": tupel.da,
+                "age": ts
+            })
+
+        return popo
+
 
 class Tool(IPacketAnalyzer):
 
     def __init__(self, mac_filter, use_cli, port, analyzr_core):
-        print "Running SSIDCatcher"
+        print "Running 'Tool'"
         self._mac_filter = mac_filter
         self._con_list = ConnectionsList(
             self._new_entry_added, self._entry_expired)
@@ -88,10 +103,19 @@ class Tool(IPacketAnalyzer):
             t = threading.Thread(target=self._refresh_cli)
             t.daemon = True
             t.start()
+        else:
+            adapter = WebAdapter(
+                self._con_list, self.run_deauth_attack, port=1337)
+
+            try:
+                adapter.start()
+            except KeyboardInterrupt:
+                pass
 
     def get_display_filter(self):
         # type of data packages (2), we are just interested in actual connections
-        # still we need some mgmt frames (probe response (5) and beacon frames (8)) in order to resolve mac addresses to SSIDs
+        # still we need some mgmt frames (probe response (5) and beacon frames
+        # (8)) in order to resolve mac addresses to SSIDs
         return "wlan.fc.type == 2 or wlan.fc.type_subtype == 5 or wlan.fc.type_subtype == 8"
 
     def get_bpf_filter(self):
@@ -102,15 +126,20 @@ class Tool(IPacketAnalyzer):
     def analyze_packet(self, packet, channel):
         wlan = packet["WLAN"]
 
-        # skip broadcasting garbage
+        # Drop packets caused by IPv6 neighbour discovery (as described
+        # here: http://en.citizendium.org/wiki/Neighbor_Discovery)
+        if wlan.da.startswith("33:33") or wlan.sa.startswith("33:33"):
+            return
+
+        # skip broadcasting garbage (like caused by IPv4's ARP discovery)
         if wlan.da == "ff:ff:ff:ff:ff:ff" or wlan.sa == "ff:ff:ff:ff:ff:ff":
             return
 
-        if self._mac_filter != None and re.match(self._mac_filter, str(wlan.sa)) == None and re.match(self._mac_filter, str(wlan.da)) == None:
+        if self._mac_filter is not None and re.match(self._mac_filter, str(wlan.sa)) is None and re.match(self._mac_filter, str(wlan.da)) is None:
             return
 
         tipe = int(packet["WLAN"].fc_type)
-        
+
         # Handle mgmt frames
         if tipe == 0:
             ssid = packet["WLAN_MGT"].ssid
@@ -147,6 +176,8 @@ class Tool(IPacketAnalyzer):
     def on_end(self):
         pass
 
+    def run_deauth_attack(self):
+        pass
 
 core = AnalyzrCore(channel_hopping=True)
 
@@ -158,6 +189,7 @@ core.get_arg_parser().add_argument("--cli", dest="use_cli", action="store_true",
                                    help="Use command line interface instead of web ui")
 
 cli_options = core.get_parsed_cli_options()
-tool = Tool(cli_options.mac_filter, cli_options.use_cli, cli_options.port, core)
+tool = Tool(cli_options.mac_filter,
+            cli_options.use_cli, cli_options.port, core)
 core.register_handler(tool)
 core.start(force_live_capture=True)
