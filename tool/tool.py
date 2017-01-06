@@ -7,6 +7,7 @@ import re
 import threading
 import time
 import copy
+from deauth_jammer import DeauthJammer
 
 from webserver import WebAdapter
 
@@ -88,7 +89,8 @@ class ConnectionsList():
 
     def next(self):
         # Create a shallow copy to prevent race conditions caused by another thread cleaning
-        # up expired entries and therefore causing a size-change during iteration of dictionary
+        # up expired entries and therefore causing a size-change during
+        # iteration of dictionary
         shallow_copy = copy.copy(self._list)
 
         for tupel in shallow_copy:
@@ -179,7 +181,8 @@ class Tool(IPacketAnalyzer):
             if ssid == "SSID: ":
                 return
 
-            mac_had_no_known_ssid_before = self._con_list.add_ssid_for_mac(wlan.sa, ssid)
+            mac_had_no_known_ssid_before = self._con_list.add_ssid_for_mac(
+                wlan.sa, ssid)
             self._ssids_found += 1 if mac_had_no_known_ssid_before else 0
             return
 
@@ -205,8 +208,11 @@ class Tool(IPacketAnalyzer):
     def on_end(self):
         pass
 
-    def run_deauth_attack(self):
-        pass
+    def run_deauth_attack(self, target_mac, ap_mac, channel, packet_count, capture_handshake):
+        iface = self._analyzr_core.iface
+        jammer = DeauthJammer(ap_mac, iface)
+        return jammer.jam(target_mac, packet_count=packet_count, capture_handshake=capture_handshake, channel=channel)
+
 
 core = AnalyzrCore(channel_hopping=True)
 

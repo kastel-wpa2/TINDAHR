@@ -6,6 +6,7 @@ import threading
 class WebAdapter():
     def __init__(self, conn_list_instance, deauth_fn, port=8080):
         self._conn_list_instance = conn_list_instance
+        self._deauth_fn = deauth_fn
         
         app = Flask(__name__, static_folder='static', static_url_path=None)
         app.config['SECRET_KEY'] = 'secret!'
@@ -29,10 +30,14 @@ class WebAdapter():
         self.start = start
 
     def _send_connections_list(self):
+        print "Received request for new list!"
         emit("connections_list", self._conn_list_instance.get_as_popo(), json=True)
 
-    def _start_deauth(self, _):
-        pass
+    def _start_deauth(self, opts):
+        print "Receveived request for deauth attack"
+        print opts
+        results = self._deauth_fn(opts["target_mac"], opts["ap_mac"], int(opts["channel"]), int(opts["deauth_packets_amount"]), opts["capture_handshake"])
+        emit("deauth_done", results, json=True)
 
 
 if __name__ == '__main__':

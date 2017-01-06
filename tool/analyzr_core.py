@@ -94,8 +94,11 @@ class AnalyzrCore():
 
     def read_live(self, interface, channel):
         self._kill_processes()
+
         if(interface == None or interface == ""):
             interface = self._select_interface(False)
+        
+        self.iface = interface
 
         print "Reading from live capture..."
         capture = pyshark.LiveCapture(
