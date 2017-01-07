@@ -58,14 +58,35 @@
             <h3 slot="header">Perform a de-auth attack (step {{deauthStep+1}}/3)</h3>
             <div slot="body">
                 <div v-if="deauthStep == STEP_SETUP">
-                    <div class="input-group">
-                        <span class="input-group-addon">Send</span>
-                        <input type="text" class="form-control" placeholder="n, e.g. 64" v-model="deauthPacketNumber">
-                        <span class="input-group-addon">de-auth packets</span>
-                    </div>
+                    <form>
+                        <div class="form-group">
+                            <div class="input-group">
+                                <span class="input-group-addon">MAC of target</span>
+                                <input type="text" class="form-control" placeholder="xx:xx:xx:xx:xx:xx" v-model="deauthOptions.target_mac">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <div class="input-group">
+                                <span class="input-group-addon">MAC of access point</span>
+                                <input type="text" class="form-control" placeholder="xx:xx:xx:xx:xx:xx" v-model="deauthOptions.ap_mac">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <div class="input-group">
+                                <span class="input-group-addon">Channel</span>
+                                <input type="text" class="form-control" placeholder="n in [1, 14]" v-model="deauthOptions.channel">
+                            </div>                  
+                        </div>
+                        <div class="form-group">  
+                            <div class="input-group">
+                                <span class="input-group-addon">Number of packets to send</span>
+                                <input type="text" class="form-control" placeholder="n, e.g. 64" v-model="deauthOptions.deauth_packet_count">
+                            </div>
+                        </div>
+                    </form>
                 </div>
                 <div v-if="deauthStep == STEP_IN_PROGRESS">
-                    <img src="/static/img/spinner.gif" id="deauth_spinner">
+                    <div class="progress-spinner"></div>
                 </div>
                 <div v-if="deauthStep == STEP_DONE">
                     {{deauthResults.filename}}<br>

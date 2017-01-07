@@ -38,18 +38,23 @@ $(() => {
             autoReload: true,
             showDeauthModal: false,
             deauthStep: null,
-            deauthPacketNumber: "",
-            _currentSelectionIdx: -1,
+            deauthOptions: {},
             deauthResults: {}
         },
         methods: {
             refresh: fetchConnections,
             openDeauthDialog: function (idx) {
-                console.log(this.showDeauthModal);
-                this.showDeauthModal = true;
+                const selectedConnection = this.entries[idx];
+
+                this.deauthOptions = {
+                    deauth_packet_count: 128,
+                    target_mac: selectedConnection.sa,
+                    ap_mac: selectedConnection.da,
+                    channel: selectedConnection.channel
+                };
+
                 this.deauthStep = this.STEP_SETUP;
-                this._currentSelectionIdx = idx;
-                console.log(idx);
+                this.showDeauthModal = true;
             },
             closeDeauthDialog: function () {
                 this.showDeauthModal = false;
@@ -57,14 +62,14 @@ $(() => {
             startDeauthAttack: function () {
                 this.deauthStep = this.STEP_IN_PROGRESS;
                 
-                const selectedConnection = this.entries[this._currentSelectionIdx];
-                
+                const opts = this.deauthOptions;
+
                 socket.emit("start_deauth", {
                     capture_handshake: true,
-                    deauth_packets_amount: this.deauthPacketNumber,
-                    target_mac: selectedConnection.sa,
-                    ap_mac: selectedConnection.da,
-                    channel: selectedConnection.channel
+                    deauth_packets_amount: opts.deauth_packet_count,
+                    target_mac: opts.target_mac,
+                    ap_mac: opts.ap_mac,
+                    channel: opts.channel
                 });
 
                 console.log("'start_deauth' event emitted!");

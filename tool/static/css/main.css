@@ -1,6 +1,9 @@
-#deauth_spinner {
-    width: 30px;
-    height: 30px;
+.progress-spinner {
+    background-image: url("/static/img/spinner.gif");
+    width: 75px;
+    height: 75px;
+    margin: auto;
+    background-size: 75px 75px;
 }
 
 #deauth-modal .modal-container {
