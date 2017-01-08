@@ -190,7 +190,7 @@ class AnalyzrCore():
             AnalyzrCore._vendor_lookup_cache[vendor] = resolved
             return resolved
         except Exception:
-            return "N.A."
+            return "n.a."
 
     @staticmethod
     def set_channel(interface, channel):

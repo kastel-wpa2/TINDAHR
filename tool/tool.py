@@ -27,10 +27,13 @@ class ConnectionTupel():
         self.da = tmp
 
     def __hash__(self):
-        return hash(self.sa) ^ hash(self.da) ^ hash(self.channel)
+        # We assume that channel isn't important because adjacent channels
+        # interfere and so we catch twice times the same connection when
+        # listening on close by channels
+        return hash(self.sa) ^ hash(self.da)
 
     def __eq__(self, other):
-        return ((self.da == other.da and self.sa == other.sa) or (self.da == other.sa and self.sa == other.da)) and self.channel == other.channel
+        return ((self.da == other.da and self.sa == other.sa) or (self.da == other.sa and self.sa == other.da))
 
     def __str__(self):
         return "%s <-> %s (%s) (channel %s) (age %ss)" % (self.sa, self.da, self.ssid, self.channel, round(time.time() - self.ts, 1))
@@ -113,7 +116,9 @@ class ConnectionsList():
 
             popo.append({
                 "sa": tupel.sa,
+                "sa_vendor": AnalyzrCore.lookup_vendor_by_mac(tupel.sa),
                 "da": tupel.da,
+                "da_vendor": AnalyzrCore.lookup_vendor_by_mac(tupel.da),
                 "ssid": tupel.ssid,
                 "channel": tupel.channel,
                 "age": round(now - tupel.ts, 1)

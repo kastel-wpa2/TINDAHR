@@ -25,12 +25,20 @@
 
 <body>
     <div id="app" class="container-fluid">
+        <h2>Tool</h2>
+        <h4>A small application for deauth-attacks lacking an actual name...</h4>
+        <hr>
         <div class="well">
             <button type="button" class="btn btn-primary" v-on:click="refresh()">
                 <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span> Refresh list
             </button>
             <input type="checkbox" id="chkbx_auto_reload" v-model="autoReload">
             <label for="checkbox">Auto reload</label>
+            <div class="input-group"  style="float: right; width: 40%;">
+                <span class="input-group-addon">Filter</span>
+                <input type="text" class="form-control" placeholder="value that should be contained in any of the entries fields" v-model="filterBy">
+            </div>
+            <div style="clear: both;"></div>
         </div>
         <table class="table table-striped">
             <tr>
@@ -41,9 +49,10 @@
                 <th>Channel</th>
                 <th></th>
             </tr>
-            <tr v-for="(entry, idx) in entries">
-                <td>{{ entry.sa }}</td>
-                <td>{{entry.da}}</td>
+            <tr v-if="entries.length == 0"><td colspan="5" class="centered">Please give the server some time to catch network connections...</td></tr>
+            <tr v-for="(entry, idx) in entries" v-if="filter(idx)">
+                <td>{{entry.sa}} ({{entry.sa_vendor}})</td>
+                <td>{{entry.da}} ({{entry.da_vendor}})</td>
                 <td>{{entry.ssid}}</td>
                 <td>{{entry.age}} s</td>
                 <td>{{entry.channel}}</td>

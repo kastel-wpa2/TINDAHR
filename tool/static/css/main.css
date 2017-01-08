@@ -9,3 +9,7 @@
 #deauth-modal .modal-container {
     width: 700px;
 }
+
+.centered {
+    text-align: center;
+}

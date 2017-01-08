@@ -2,9 +2,12 @@ from flask import Flask
 from flask_socketio import SocketIO, send, emit
 import logging
 import threading
+from gevent import monkey
 
 class WebAdapter():
     def __init__(self, conn_list_instance, deauth_fn, port=8080):
+        #monkey.patch_all()
+
         self._conn_list_instance = conn_list_instance
         self._deauth_fn = deauth_fn
         

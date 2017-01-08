@@ -1,12 +1,7 @@
 $(() => {
     "use strict";
 
-    const entries = [{
-        sa: "sa",
-        da: "da",
-        ssid: "ssid",
-        age: "age"
-    }];
+    const entries = [];
 
     const socket = io.connect('http://' + document.domain + ':' + location.port);
 
@@ -39,7 +34,8 @@ $(() => {
             showDeauthModal: false,
             deauthStep: null,
             deauthOptions: {},
-            deauthResults: {}
+            deauthResults: {},
+            filterBy: ""
         },
         methods: {
             refresh: fetchConnections,
@@ -61,7 +57,7 @@ $(() => {
             },
             startDeauthAttack: function () {
                 this.deauthStep = this.STEP_IN_PROGRESS;
-                
+
                 const opts = this.deauthOptions;
 
                 socket.emit("start_deauth", {
@@ -73,6 +69,27 @@ $(() => {
                 });
 
                 console.log("'start_deauth' event emitted!");
+            },
+            filter: function (idx) {
+                if (this.filterBy === "") {
+                    return true;
+                }
+
+                const selectedConnection = this.entries[idx];
+                console.log("HERE: ", idx);
+                const keys = Object.keys(selectedConnection);
+                for (let key of keys) {
+                    const field = selectedConnection[key];
+                    if (typeof field !== "string") {
+                        continue;
+                    }
+
+                    if (field.toLowerCase().indexOf(this.filterBy.toLowerCase()) > -1) {
+                        return true;
+                    }
+                }
+
+                return false;
             }
         }
     });
