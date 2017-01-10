@@ -32,6 +32,7 @@ class WebAdapter():
     def _send_connections_list(self):
         print "Received request for new list!"
         emit("connections_list", self._conn_list_instance.get_as_popo(), json=True)
+        print "Answered with new list"
 
     def _start_deauth(self, opts):
         print "Receveived request for deauth attack"

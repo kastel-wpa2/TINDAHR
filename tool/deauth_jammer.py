@@ -51,7 +51,7 @@ class DeauthJammer(object):
             FNULL = open(os.devnull, 'w')
             # proc = subprocess.Popen(["tshark", "-i", scapy.conf.iface, "-w", capture_filename, "-f", "type mgt"], stdin=None,
             #                        stderr=FNULL, stdout=FNULL, close_fds=True)  # we might add -a as filter for only capturing unassociated clients
-            roc = subprocess.Popen(["airodump-ng", "-c", channel, "-w", capture_filename, scapy.conf.iface], stdin=None,
+            proc = subprocess.Popen(["airodump-ng", "-c", str(channel), "-w", capture_filename, scapy.conf.iface], stdin=None,
                                     stderr=FNULL, stdout=FNULL, close_fds=True)  # we might add -a as filter for only capturing unassociated clients
 
         for target in targets:
