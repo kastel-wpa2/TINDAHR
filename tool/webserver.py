@@ -2,12 +2,9 @@ from flask import Flask
 from flask_socketio import SocketIO, send, emit
 import logging
 import threading
-from gevent import monkey
 
 class WebAdapter():
     def __init__(self, conn_list_instance, deauth_fn, port=8080):
-        #monkey.patch_all()
-
         self._conn_list_instance = conn_list_instance
         self._deauth_fn = deauth_fn
         
@@ -40,6 +37,7 @@ class WebAdapter():
         print "Receveived request for deauth attack"
         print opts
         results = self._deauth_fn(opts["target_mac"], opts["ap_mac"], int(opts["channel"]), int(opts["deauth_packets_amount"]), opts["capture_handshake"])
+        print "Deauth done"
         emit("deauth_done", results, json=True)
 
 
