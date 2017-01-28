@@ -46,11 +46,14 @@ class DeauthJammer(object):
         AnalyzrCore.set_channel(scapy.conf.iface, channel)
 
         proc = None
-        capture_filename = "capture_" + str(time.time()) + ".pcap"
+        capture_prefix = "capture_" + str(time.time())
+        capture_filename = capture_prefix + "-01.cap"        
         if capture_handshake:
             FNULL = open(os.devnull, 'w')
-            proc = subprocess.Popen(["tshark", "-i", scapy.conf.iface, "-w", capture_filename], stdin=None,
-                                    stderr=FNULL, stdout=FNULL, close_fds=True)  # we might add -a as filter for only capturing unassociated clients
+            # proc = subprocess.Popen(["tshark", "-i", scapy.conf.iface, "-w", capture_filename], stdin=None,
+                                    # stderr=FNULL, stdout=FNULL, close_fds=True)  # we might add -a as filter for only capturing unassociated clients
+            proc = subprocess.Popen(["airodump-ng", "-c", str(channel), "-w", capture_prefix, scapy.conf.iface], stdin=None,
+                                   stderr=FNULL, stdout=FNULL, close_fds=True)  # we might add -a as filter for only capturing unassociated clients
 
         for target in targets:
             jamThread = threading.Thread(
