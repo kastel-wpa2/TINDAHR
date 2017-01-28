@@ -98,9 +98,9 @@
                     <div class="progress-spinner"></div>
                 </div>
                 <div v-if="deauthStep == STEP_DONE">
-                    {{deauthResults.filename}}<br>
-                    {{deauthResults.handshake_captured}}<br>
-                    {{deauthResults.pyrit_output}}
+                    <span v-if="deauthResults.handshake_captured" class="glyphicon glyphicon-ok result_icon green"></span>
+                    <span v-if="!deauthResults.handshake_captured" class="glyphicon glyphicon-remove result_icon red"></span>                    
+                    <p>Filename of dump: {{deauthResults.filename}}</p>
                 </div>
             </div>
             <div slot="footer">
