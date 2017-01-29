@@ -1,0 +1,6 @@
+[submodule "tool/manuf"]
+	path = tool/manuf
+	url = https://github.com/coolbho3k/manuf.git
+[submodule "tool/vendor/manuf"]
+	path = tool/vendor/manuf
+	url = https://github.com/coolbho3k/manuf.git
