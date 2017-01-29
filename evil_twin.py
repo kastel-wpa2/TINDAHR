@@ -20,8 +20,10 @@ class EvilTwin():
         ssid = core.get_parsed_cli_options().ssid
         try:
             if(ssid == None or ssid == ""):
+                print "No SSID specified, starting airbase-ng with -P switch enabled."
                 self._start_p(interface, file_name)
             else:
+                print "Starting airbase-ng with SSID ", ssid
                 self._start(interface, file_name, ssid)
         except KeyboardInterrupt:
             print "Catched keyboard interrupt: Analyzing dump."
@@ -35,7 +37,7 @@ class EvilTwin():
         Popen(["airbase-ng", "-Z", "4", "-P", "-F", file_name, interface]).communicate()            
 
     def _start(self, interface, file_name, ssid):
-        Popen(["airbase-ng", "-Z", "4", "-P", "-F", file_name, "-essid", ssid, interface]).communicate()
+        Popen(["airbase-ng", "-Z", "4", "-F", file_name, "--essid", ssid, interface]).communicate()
     	
     def _select_interface(self):
         interface = core.get_parsed_cli_options().interface
