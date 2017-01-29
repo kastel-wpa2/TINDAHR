@@ -93,9 +93,9 @@ class AnalyzrCore():
             self._process_packet(packet)
 
     def read_live(self, interface, channel):
-        self._kill_processes()
+        self.kill_processes()
         if(interface == None or interface == ""):
-            interface = self._select_interface(False)
+            interface = self.select_interface(False)
 
         print "Reading from live capture..."
         capture = pyshark.LiveCapture(
@@ -115,18 +115,18 @@ class AnalyzrCore():
         for packet in capture.sniff_continuously():
             self._process_packet(packet)
 
-    def _kill_processes(self):
+    def kill_processes(self):
         print "Killing processes which may interfere the scanning process."
         Popen(["sudo", "airmon-ng", "check", "kill"]).communicate()
 
     def _select_from_airodump(self):
-        interface = self._select_interface(False)
+        interface = self.select_interface(False)
         try:
             airodump = Popen(["sudo", "airodump-ng", interface]).communicate()
         except KeyboardInterrupt:
             print "Placeholder"
 
-    def _select_interface(self, secdond_try):
+    def select_interface(self, secdond_try=False):
         iwconfig = Popen(["iwconfig"], stdout=PIPE,
                          stderr=open(os.devnull, "w"))
         monitor = []
@@ -171,7 +171,7 @@ class AnalyzrCore():
         Popen(["airmon-ng", "start", interfaces[0]],
                stdout=PIPE, stderr=open(os.devnull, "w")).communicate()
         print "Checking for interfaces again."
-        return self._select_interface(True)
+        return self.select_interface(True)
 
     def _process_packet(self, packet):
         self._packet_analyzer.analyze_packet(packet, self.current_channel)
