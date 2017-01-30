@@ -1,5 +1,4 @@
 import argparse
-import pyshark
 import atexit
 import urllib2
 import sys
@@ -10,6 +9,7 @@ import threading
 from subprocess import Popen, PIPE
 from abc import ABCMeta, abstractmethod
 import types
+import scapy.all as scapy
 import vendor.manuf.manuf.manuf as manuf
 
 class IPacketAnalyzer():
@@ -72,39 +72,36 @@ class AnalyzrCore():
     def start(self, force_live_capture=False):
         options = self.get_parsed_cli_options()
 
+        bpf_filter = self._packet_analyzer.get_bpf_filter()
+
         try:
             if options.filename != "" and not force_live_capture:
-                self.read_from_file(options.filename)
+                self.read_from_file(options.filename, bpf_filter)
             else:
-                self.read_live(options.interface, options.channel)
+                self.read_live(options.interface, options.channel, bpf_filter)
         except KeyboardInterrupt:
             print "Catched keyboard interrupt: exiting application."
             sys.exit()
 
-    def read_from_file(self, filename):
+    def read_from_file(self, filename, bpf_filter):
         try:
-            cap = pyshark.FileCapture(
-                filename, display_filter=self._packet_analyzer.get_display_filter())
+            print "Reading from file..."
+            scapy.sniff(offline=filename, filter=bpf_filter, prn=self._process_packet)
         except Exception as ex:
             raise Exception("Could not open file '" +
                             filename + "'", ex)
 
         print "Reading from file..."
 
-        for packet in cap:
-            self._process_packet(packet)
-
-    def read_live(self, interface, channel):
+    def read_live(self, interface, channel, bpf_filter):
         self._kill_processes()
 
-        if(interface == None or interface == ""):
+        if(interface == None or not interface):
             interface = self._select_interface(False)
         
         self.iface = interface
 
         print "Reading from live capture..."
-        capture = pyshark.LiveCapture(
-            interface=interface, bpf_filter=self._packet_analyzer.get_bpf_filter())
 
         if self._channel_hopping and channel == 0:
             channel = 1
@@ -117,8 +114,7 @@ class AnalyzrCore():
         if self._channel_hopping:
             self._start_channel_hopping(interface)
 
-        for packet in capture.sniff_continuously():
-            self._process_packet(packet)
+        scapy.sniff(iface=interface, filter=bpf_filter, prn=self._process_packet)
 
     def _kill_processes(self):
         print "Killing processes which may interfere the scanning process."

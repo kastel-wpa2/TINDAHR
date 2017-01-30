@@ -1,0 +1,1 @@
+- Take care of not switching channels during deauth jamming

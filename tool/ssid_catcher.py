@@ -4,6 +4,7 @@ import sys
 import os
 from analyzr_core import *
 import re
+import scapy.all as scapy
 
 
 class SSIDCatcher(IPacketAnalyzer):
@@ -20,23 +21,23 @@ class SSIDCatcher(IPacketAnalyzer):
         return "subtype probereq"
 
     def analyze_packet(self, packet, channel):
-		ssid = packet["WLAN_MGT"].ssid
+		ssid = packet.info
 
-		wlan = packet["WLAN"]
+		sa = packet.addr2
 
         # Broadcast, we skip this
-		if ssid == "SSID: ":
+		if not ssid:
 			return
 
-		if self._mac_filter != None and re.match(self._mac_filter, str(wlan.sa)) == None:
+		if self._mac_filter != None and re.match(self._mac_filter, sa) == None:
 			return
 
-		wlan.sa += " (" + AnalyzrCore.lookup_vendor_by_mac(wlan.sa) + ")"
+		sa += " (" + AnalyzrCore.lookup_vendor_by_mac(sa) + ")"
 
-		if wlan.sa not in self._probe_requests:
-			self._probe_requests[wlan.sa] = set()
+		if sa not in self._probe_requests:
+			self._probe_requests[sa] = set()
         
-		if(self._new_entry_added(wlan.sa, ssid)):
+		if(self._new_entry_added(sa, ssid)):
 			self._refresh()
 
     def _new_entry_added(self, source, ssid):

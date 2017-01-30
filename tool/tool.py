@@ -162,37 +162,38 @@ class Tool(IPacketAnalyzer):
         return "type data or subtype probe-resp or subtype beacon"
 
     def analyze_packet(self, packet, channel):
-        wlan = packet["WLAN"]
+        da = packet.addr1
+        sa = packet.addr2
 
         # Drop packets caused by IPv6 neighbour discovery (as described
         # here: http://en.citizendium.org/wiki/Neighbor_Discovery)
-        if wlan.da.startswith("33:33") or wlan.sa.startswith("33:33"):
+        if da.startswith("33:33") or sa.startswith("33:33"):
             return
 
         # skip broadcasting garbage (like caused by IPv4's ARP discovery)
-        if wlan.da == "ff:ff:ff:ff:ff:ff" or wlan.sa == "ff:ff:ff:ff:ff:ff":
+        if da == "ff:ff:ff:ff:ff:ff" or sa == "ff:ff:ff:ff:ff:ff":
             return
 
-        if self._mac_filter is not None and re.match(self._mac_filter, str(wlan.sa)) is None and re.match(self._mac_filter, str(wlan.da)) is None:
+        if self._mac_filter is not None and re.match(self._mac_filter, sa) is None and re.match(self._mac_filter, da) is None:
             return
 
-        tipe = int(packet["WLAN"].fc_type)
+        tipe = int(packet.type)
 
         # Handle mgmt frames
         if tipe == 0:
-            ssid = packet["WLAN_MGT"].ssid
+            ssid = packet.info
 
             # Broadcast, we skip this
-            if ssid == "SSID: ":
+            if not ssid:
                 return
 
             mac_had_no_known_ssid_before = self._con_list.add_ssid_for_mac(
-                wlan.sa, ssid)
+                sa, ssid)
             self._ssids_found += 1 if mac_had_no_known_ssid_before else 0
             return
 
         # Handle data frames
-        self._con_list.add(wlan.sa, wlan.da, channel)
+        self._con_list.add(sa, da, channel)
 
     def _new_entry_added(self, sa, da, channel):
         pass
