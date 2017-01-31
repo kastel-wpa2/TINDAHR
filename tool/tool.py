@@ -33,7 +33,7 @@ class ConnectionTupel():
         return hash(self.sa) ^ hash(self.da)
 
     def __eq__(self, other):
-        return ((self.da == other.da and self.sa == other.sa) or (self.da == other.sa and self.sa == other.da))
+        return self.da == other.da and self.sa == other.sa
 
     def __str__(self):
         return "%s <-> %s (%s) (channel %s) (age %ss)" % (self.sa, self.da, self.ssid, self.channel, round(time.time() - self.ts, 1))
@@ -41,10 +41,8 @@ class ConnectionTupel():
 
 class ConnectionsList():
 
-    def __init__(self, on_new_handler, on_expired_handler):
+    def __init__(self):
         self._list = set()
-        self._on_new = on_new_handler
-        self._on_expired = on_expired_handler
         self._ssid_map = dict()
 
         def threadFn():
@@ -63,9 +61,6 @@ class ConnectionsList():
 
         self._list = set([tupel]).union(self._list)  # timestamp in seconds
 
-        if new:
-            self._on_new(sa, da, channel)
-
         return new
 
     def _check_for_expired(self):
@@ -78,7 +73,6 @@ class ConnectionsList():
         for tupel in shallow_copy:
             if tupel.ts + 20 < now:
                 self._list.remove(tupel)
-                self._on_expired(tupel.sa, tupel.da, tupel.channel)
 
     def __iter__(self):
         return self.next()
@@ -98,8 +92,6 @@ class ConnectionsList():
 
         for tupel in shallow_copy:
             if tupel.ssid == "n.a.":
-                if tupel.sa in self._ssid_map:
-                    tupel.swap_addresses()
                 tupel.ssid = self._ssid_map.get(tupel.da, "n.a.")
 
             yield tupel
@@ -110,8 +102,6 @@ class ConnectionsList():
 
         for tupel in self._list:
             if tupel.ssid == "n.a.":
-                if tupel.sa in self._ssid_map:
-                    tupel.swap_addresses()
                 tupel.ssid = self._ssid_map.get(tupel.da, "n.a.")
 
             popo.append({
@@ -132,8 +122,7 @@ class Tool(IPacketAnalyzer):
     def __init__(self, mac_filter, use_cli, port, analyzr_core):
         print "Running 'Tool'"
         self._mac_filter = mac_filter
-        self._con_list = ConnectionsList(
-            self._new_entry_added, self._entry_expired)
+        self._con_list = ConnectionsList()
         self._analyzr_core = analyzr_core
         self._ssids_found = 0
 
@@ -144,7 +133,6 @@ class Tool(IPacketAnalyzer):
         else:
             adapter = WebAdapter(
                 self._con_list, self.run_deauth_attack, port=1337)
-
             try:
                 adapter.start()
             except KeyboardInterrupt:
@@ -159,11 +147,33 @@ class Tool(IPacketAnalyzer):
     def get_bpf_filter(self):
         # according to https://linux.die.net/man/7/pcap-filter (search for
         # "type wlan_type")
+        # subtype probe-ressp or subtype beacon implicitly enforce type mgmt
         return "type data or subtype probe-resp or subtype beacon"
 
     def analyze_packet(self, packet, channel):
-        da = packet.addr1
+        # (Almost) Every single packet contains the bssid, the MAC address of the access point sending
+        # or receiving this package. We need "da" to be the address of the access point, by this we know in
+        # which direction this package has been sent. But the position of the bssid in the frame varies depending on the origin
+        # and destination of the packet. It can be inferred looking at "To DS" and "From DS" bits. So we actual do not name BSSID in the following,
+        # but it is already what we extract from the packet
+        # "To DS" and "From DS" can be checked here: http://einstein.informatik.uni-oldenburg.de/rechnernetze/frame.htm
+        DS = packet.FCfield & 0x3
+        to_DS = DS & 0x1 != 0
+        from_DS = DS & 0x2 != 0
+
+        # implicit case !to_DS and !from_DS
+        da = packet.addr3
         sa = packet.addr2
+
+        if to_DS and from_DS:
+            # This page clarifies that: https://technet.microsoft.com/en-us/library/cc757419(v=ws.10).aspx
+            da = packet.addr1
+            sa = packet.addr4
+        elif to_DS and not from_DS:
+            da = packet.addr1
+        elif not to_DS and from_DS:
+            da = packet.addr2
+            sa = packet.addr1
 
         # Drop packets caused by IPv6 neighbour discovery (as described
         # here: http://en.citizendium.org/wiki/Neighbor_Discovery)
@@ -188,18 +198,12 @@ class Tool(IPacketAnalyzer):
                 return
 
             mac_had_no_known_ssid_before = self._con_list.add_ssid_for_mac(
-                sa, ssid)
+                da, ssid)
             self._ssids_found += 1 if mac_had_no_known_ssid_before else 0
             return
 
         # Handle data frames
         self._con_list.add(sa, da, channel)
-
-    def _new_entry_added(self, sa, da, channel):
-        pass
-
-    def _entry_expired(self, sa, da, channel):
-        pass
 
     def _refresh_cli(self):
         while True:

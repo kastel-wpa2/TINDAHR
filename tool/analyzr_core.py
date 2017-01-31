@@ -15,6 +15,7 @@ import vendor.manuf.manuf.manuf as manuf
 class IPacketAnalyzer():
     __metaclass__ = ABCMeta
 
+    # This will be deprecated very soon, scapy can use bpf filter for live- and offline-captures
     @abstractmethod
     def get_display_filter(self):
         pass
