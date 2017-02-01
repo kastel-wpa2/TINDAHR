@@ -36,7 +36,8 @@ class ConnectionTupel():
         return self.da == other.da and self.sa == other.sa
 
     def __str__(self):
-        return "%s <-> %s (%s) (channel %s) (age %ss)" % (self.sa, self.da, self.ssid, self.channel, round(time.time() - self.ts, 1))
+        age = round(time.time() - self.ts, 1)
+        return "%s <-> %s (%s) (channel %s) (age %ss)" % (self.sa, self.da, self.ssid, self.channel, age)
 
 
 class ConnectionsList():
@@ -153,10 +154,11 @@ class Tool(IPacketAnalyzer):
     def analyze_packet(self, packet, channel):
         # (Almost) Every single packet contains the bssid, the MAC address of the access point sending
         # or receiving this package. We need "da" to be the address of the access point, by this we know in
-        # which direction this package has been sent. But the position of the bssid in the frame varies depending on the origin
-        # and destination of the packet. It can be inferred looking at "To DS" and "From DS" bits. So we actual do not name BSSID in the following,
-        # but it is already what we extract from the packet
-        # "To DS" and "From DS" can be checked here: http://einstein.informatik.uni-oldenburg.de/rechnernetze/frame.htm
+        # which direction this package has been sent. But the position of the bssid in the frame varies
+        # depending on the origin and destination of the packet. It can be inferred looking at "To DS"
+        # and "From DS" bits. So we actual do not name BSSID in the following, but it is already what
+        # we extract from the packet "To DS" and "From DS" can be checked
+        # here: http://einstein.informatik.uni-oldenburg.de/rechnernetze/frame.htm
         DS = packet.FCfield & 0x3
         to_DS = DS & 0x1 != 0
         from_DS = DS & 0x2 != 0
@@ -166,7 +168,8 @@ class Tool(IPacketAnalyzer):
         sa = packet.addr2
 
         if to_DS and from_DS:
-            # This page clarifies that: https://technet.microsoft.com/en-us/library/cc757419(v=ws.10).aspx
+            # This page clarifies that:
+            # https://technet.microsoft.com/en-us/library/cc757419(v=ws.10).aspx
             da = packet.addr1
             sa = packet.addr4
         elif to_DS and not from_DS:
