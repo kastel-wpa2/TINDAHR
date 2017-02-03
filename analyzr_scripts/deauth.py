@@ -1,6 +1,10 @@
 #! /usr/bin/env python
 
 import sys
+import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
+
 from analyzr_core import *
 
 
@@ -11,18 +15,15 @@ class DeauthCounter(IPacketAnalyzer):
     def __init__(self):
         print "Running DeauthCounter"
 
-    def get_display_filter(self):
-        return "wlan.fc.type == 0"  # Mgt frame
-
     def get_bpf_filter(self):
         return "type mgt"
 
     def analyze_packet(self, packet, channel):
-        subtype = int(packet["WLAN"].fc_subtype)
+        subtype = packet.subtype
         self._counter[subtype] += 1
 
-        if int(packet["WLAN"].fc_subtype) == 12:
-            reason_code = int(packet["WLAN_MGT"].fixed_reason_code)
+        if subtype == 12:
+            reason_code = packet.reason
             if reason_code <= 535:
                 self._counter_reason_code[reason_code] += 1
 
@@ -37,6 +38,6 @@ class DeauthCounter(IPacketAnalyzer):
                 continue
             print str(idx) + ":\t " + str(count)
 
-deauth_counter = DeauthCounter() 
+deauth_counter = DeauthCounter()
 core = AnalyzrCore(deauth_counter)
 core.start()

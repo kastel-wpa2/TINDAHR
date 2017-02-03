@@ -1,6 +1,10 @@
 #! /usr/bin/env python
 
 import sys
+import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
+
 from analyzr_core import *
 
 
@@ -19,15 +23,11 @@ class MgtPacketCounter(IPacketAnalyzer):
 
         print "Running MgtPacketCounter"
 
-    def get_display_filter(self):
-        return "wlan.fc.type == 0"
-
     def get_bpf_filter(self):
         return "type mgt"
 
-    def analyze_packet(self, packet, channel):
-        tipe = int(packet["WLAN"].fc_subtype)
-        self._counter[tipe] += 1
+    def analyze_packet(self, packet, channel): 
+        self._counter[packet.subtype] += 1
 
         sys.stdout.write("\rDeauthentification packets: " + str(self._counter[
                          12]) + " | Probe Requests: " + str(self._counter[4]) + " | Beacons: " + str(self._counter[8]))
@@ -39,8 +39,8 @@ class MgtPacketCounter(IPacketAnalyzer):
         for (idx, count) in enumerate(self._counter):
             if count == 0:
                 continue
-            if(self.MGT_TYPES_NAMES[idx] != ""):
-                prefix = self.MGT_TYPES_NAMES[idx] 
+            if self.MGT_TYPES_NAMES[idx] != "":
+                prefix = self.MGT_TYPES_NAMES[idx]
             else:
                 prefix = ("Code " + str(idx)).ljust(20)
             print prefix + ":\t " + str(count)

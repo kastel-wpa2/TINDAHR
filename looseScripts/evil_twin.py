@@ -3,6 +3,7 @@
 import os
 import glob
 import time
+import sys
 from analyzr_core import *
 from subprocess import Popen, PIPE
 
