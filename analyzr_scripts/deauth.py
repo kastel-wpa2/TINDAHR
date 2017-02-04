@@ -11,6 +11,7 @@ from analyzr_core import *
 class DeauthCounter(IPacketAnalyzer):
     _counter = [0] * 25
     _counter_reason_code = [0] * 536  # according to IEEE spec
+    reason_missing = 0
 
     def __init__(self):
         print "Running DeauthCounter"
@@ -23,9 +24,13 @@ class DeauthCounter(IPacketAnalyzer):
         self._counter[subtype] += 1
 
         if subtype == 12:
-            reason_code = packet.reason
-            if reason_code <= 535:
-                self._counter_reason_code[reason_code] += 1
+            reason_code = 1
+            if "reason" in packet and packet.reason <= 535:
+                reason_code = packet.reason
+            else:
+                self.reason_missing += 1
+
+            self._counter_reason_code[reason_code] += 1
 
         sys.stdout.write("\rDeauthentification packets: " + str(self._counter[
                          12]) + " | Probe Requests: " + str(self._counter[4]) + " | Beacons: " + str(self._counter[8]))
@@ -37,6 +42,7 @@ class DeauthCounter(IPacketAnalyzer):
             if count == 0:
                 continue
             print str(idx) + ":\t " + str(count)
+            print "Reason missing: ", str(self.reason_missing)
 
 deauth_counter = DeauthCounter()
 core = AnalyzrCore(deauth_counter)

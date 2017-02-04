@@ -81,14 +81,12 @@ class AnalyzrCore():
             sys.exit()
 
     def read_from_file(self, filename, bpf_filter):
-        try:
-            print "Reading from file..."
-            filename = os.path.abspath(filename)
-            scapy.sniff(offline=filename, filter=bpf_filter, prn=self._process_packet)
-        except Exception as ex:
-            raise Exception("Could not open file '" + filename + "'", ex)
-
+        # try:
         print "Reading from file..."
+        filename = os.path.abspath(filename)
+        scapy.sniff(offline=filename, filter=bpf_filter, prn=self._process_packet)
+
+        print "Reading from file done!"
 
     def read_live(self, interface, channel, bpf_filter):
         self._kill_processes()
