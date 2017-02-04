@@ -139,17 +139,10 @@ class Tool(IPacketAnalyzer):
             except KeyboardInterrupt:
                 pass
 
-    def get_display_filter(self):
-        # type of data packages (2), we are just interested in actual connections
-        # still we need some mgmt frames (probe response (5) and beacon frames
-        # (8)) in order to resolve mac addresses to SSIDs
-        return "wlan.fc.type == 2 or wlan.fc.type_subtype == 5 or wlan.fc.type_subtype == 8"
-
     def get_bpf_filter(self):
         # according to https://linux.die.net/man/7/pcap-filter (search for
         # "type wlan_type")
-        # subtype probe-ressp or subtype beacon implicitly enforce type mgmt
-        return "type data or subtype probe-resp or subtype beacon"
+        return "type data"
 
     def analyze_packet(self, packet, channel):
         # (Almost) Every single packet contains the bssid, the MAC address of the access point sending
