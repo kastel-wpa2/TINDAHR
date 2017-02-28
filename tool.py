@@ -1,5 +1,8 @@
 #! /usr/bin/env python
 
+import eventlet
+eventlet.monkey_patch()
+
 import sys
 import os
 from analyzr_core import *
@@ -7,6 +10,7 @@ import re
 import threading
 import time
 import copy
+import scapy.all as scapy
 from deauth_jammer import DeauthJammer
 
 from webserver import WebAdapter
@@ -14,10 +18,9 @@ from webserver import WebAdapter
 
 class ConnectionTupel():
 
-    def __init__(self, sa, da, channel, ssid="n.a."):
+    def __init__(self, sa, da, ssid="n.a."):
         self.sa = sa
         self.da = da
-        self.channel = channel
         self.ts = time.time()
         self.ssid = ssid
 
@@ -37,7 +40,7 @@ class ConnectionTupel():
 
     def __str__(self):
         age = round(time.time() - self.ts, 1)
-        return "%s <-> %s (%s) (channel %s) (age %ss)" % (self.sa, self.da, self.ssid, self.channel, age)
+        return "%s <-> %s (%s) (channel %s) (age %ss)" % (self.sa, self.da, self.ssid, age)
 
 
 class ConnectionsList():
@@ -45,6 +48,7 @@ class ConnectionsList():
     def __init__(self):
         self._list = set()
         self._ssid_map = dict()
+        self._ap_channel_mapping = dict()        
 
         def threadFn():
             while True:
@@ -55,12 +59,12 @@ class ConnectionsList():
         t.daemon = True
         t.start()
 
-    def add(self, sa, da, channel):
-        tupel = ConnectionTupel(sa, da, channel)
+    def add(self, sa, da):
+        tupel = ConnectionTupel(sa, da)
 
         new = tupel in self._list
 
-        self._list = set([tupel]).union(self._list)  # timestamp in seconds
+        self._list = set([tupel]).union(self._list)
 
         return new
 
@@ -84,6 +88,9 @@ class ConnectionsList():
         self._ssid_map[mac] = ssid
 
         return new
+
+    def add_channel_for_ssid(self, ssid, channel):
+        self._ap_channel_mapping[ssid] = channel
 
     def next(self):
         # Create a shallow copy to prevent race conditions caused by another thread cleaning
@@ -111,7 +118,7 @@ class ConnectionsList():
                 "da": tupel.da,
                 "da_vendor": AnalyzrCore.lookup_vendor_by_mac(tupel.da),
                 "ssid": tupel.ssid,
-                "channel": tupel.channel,
+                "channel": self._ap_channel_mapping[tupel.ssid] if tupel.ssid in self._ap_channel_mapping else "n.a.",
                 "age": round(now - tupel.ts, 1)
             })
 
@@ -142,7 +149,7 @@ class Tool(IPacketAnalyzer):
     def get_bpf_filter(self):
         # according to https://linux.die.net/man/7/pcap-filter (search for
         # "type wlan_type")
-        return "type data"
+        return "type data or subtype probe-resp or subtype beacon"
 
     def analyze_packet(self, packet, channel):
         # (Almost) Every single packet contains the bssid, the MAC address of the access point sending
@@ -183,10 +190,8 @@ class Tool(IPacketAnalyzer):
         if self._mac_filter is not None and re.match(self._mac_filter, sa) is None and re.match(self._mac_filter, da) is None:
             return
 
-        tipe = int(packet.type)
-
         # Handle mgmt frames
-        if tipe == 0:
+        if packet.type == 0:
             ssid = packet.info
 
             # Broadcast, we skip this
@@ -196,17 +201,23 @@ class Tool(IPacketAnalyzer):
             mac_had_no_known_ssid_before = self._con_list.add_ssid_for_mac(
                 da, ssid)
             self._ssids_found += 1 if mac_had_no_known_ssid_before else 0
-            return
 
+            # handle beacon frames (8) or probe-resp (5)
+            if packet.subtype == 8 or packet.subtype == 5:
+                channel = int(ord(packet[scapy.Dot11Elt:3].info))
+                self._con_list.add_channel_for_ssid(ssid, channel)
+
+            return
+            
         # Handle data frames
-        self._con_list.add(sa, da, channel)
+        self._con_list.add(sa, da)
 
     def _refresh_cli(self):
         while True:
             os.system("clear")
             print "Items in ssid map: " + str(self._ssids_found) + " | Listening on channel: " + str(self._analyzr_core.current_channel)
 
-            for tupel in self._con_list:
+            for tupel in self._con_list.get_as_popo():
                 print tupel
 
             time.sleep(1)
