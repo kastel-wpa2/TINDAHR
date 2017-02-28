@@ -28,3 +28,7 @@
 .red {
     color: brown;
 }
+
+.white {
+    color: white !important;
+}

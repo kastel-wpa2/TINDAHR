@@ -5,12 +5,6 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <style>
-        body {
-            padding-top: 20px;
-        }
-    </style>
-
     <link rel="stylesheet" href="/static/node_modules/bootstrap3/dist/css/bootstrap.min.css"></link>
     <link rel="stylesheet" href="/static/css/modal.component.css"></link>
     <link rel="stylesheet" href="/static/css/main.css"></link>
@@ -24,17 +18,22 @@
 </head>
 
 <body>
+    <nav class="navbar navbar-inverse navbar-static-top">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <a class="navbar-brand white" href="#">TINDAHR</a>
+                <p class="navbar-text"><span class="white">T</span>ool for <span class="white">In</span>teractive <span class="white">D</span>eauth-<span class="white">A</span>ttacks and <span class="white">H</span>andshake <span class="white">R</span>ecording</p>
+            </div>
+        </div>
+    </nav>
     <div id="app" class="container-fluid">
-        <h2>Tool</h2>
-        <h4>A small application for deauth-attacks lacking an actual name...</h4>
-        <hr>
         <div class="well">
             <button type="button" class="btn btn-primary" v-on:click="refresh()">
                 <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span> Refresh list
             </button>
             <input type="checkbox" id="chkbx_auto_reload" v-model="autoReload">
             <label for="checkbox">Auto reload</label>
-            <div class="input-group"  style="float: right; width: 40%;">
+            <div class="input-group" style="float: right; width: 40%;">
                 <span class="input-group-addon">Filter</span>
                 <input type="text" class="form-control" placeholder="value that should be contained in any of the entries fields" v-model="filterBy">
             </div>
@@ -49,7 +48,9 @@
                 <th>Channel</th>
                 <th></th>
             </tr>
-            <tr v-if="entries.length == 0"><td colspan="5" class="centered">Please give the server some time to catch network connections...</td></tr>
+            <tr v-if="entries.length == 0">
+                <td colspan="5" class="centered">Please give the server some time to catch network connections...</td>
+            </tr>
             <tr v-for="(entry, idx) in entries" v-if="filter(idx)">
                 <td>{{entry.sa}} ({{entry.sa_vendor}})</td>
                 <td>{{entry.da}} ({{entry.da_vendor}})</td>
@@ -84,9 +85,9 @@
                             <div class="input-group">
                                 <span class="input-group-addon">Channel</span>
                                 <input type="text" class="form-control" placeholder="n in [1, 14]" v-model="deauthOptions.channel">
-                            </div>                  
+                            </div>
                         </div>
-                        <div class="form-group">  
+                        <div class="form-group">
                             <div class="input-group">
                                 <span class="input-group-addon">Number of packets to send</span>
                                 <input type="text" class="form-control" placeholder="n, e.g. 64" v-model="deauthOptions.deauth_packet_count">
@@ -99,8 +100,8 @@
                 </div>
                 <div v-if="deauthStep == STEP_DONE">
                     <span v-if="deauthResults.handshake_captured" class="glyphicon glyphicon-ok result_icon green"></span>
-                    <span v-if="!deauthResults.handshake_captured" class="glyphicon glyphicon-remove result_icon red"></span>                    
-                    <span class="glyphicon glyphicon-ok result_icon green"></span>                    
+                    <span v-if="!deauthResults.handshake_captured" class="glyphicon glyphicon-remove result_icon red"></span>
+                    <span class="glyphicon glyphicon-ok result_icon green"></span>
                     <p>Filename of dump: {{deauthResults.filename}}</p>
                 </div>
             </div>
