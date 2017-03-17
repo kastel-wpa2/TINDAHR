@@ -51,6 +51,9 @@ class AnalyzrCore():
         self.current_channel = None
         self._channel_hopping = channel_hopping
 
+    def does_channel_hopping(self):
+        return self._channel_hopping
+
     def register_handler(self, packet_analyzer):
         assert issubclass(type(packet_analyzer), IPacketAnalyzer)
         self._packet_analyzer = packet_analyzer

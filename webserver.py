@@ -30,21 +30,16 @@ class WebAdapter():
         self.start = start
 
     def _send_connections_list(self):
-        print "Received request for new list!"
         emit("connections_list", self._conn_list_instance.get_as_popo(), json=True)
-        print "Answered with new list"
 
     def _start_deauth(self, opts):
-        print "Receveived request for deauth attack"
-        print opts
+        print "Receveived request for deauth attack, starting..."
         results = self._deauth_fn(opts["target_mac"], opts["ap_mac"], int(opts["channel"]), int(opts["deauth_packets_amount"]), opts["capture_handshake"])
         print "Deauth done"
         emit("deauth_done", results, json=True)
 
 
-if __name__ == '__main__':
-    adapter = WebAdapter(None)
-else:
+if __name__ != '__main__':
     # Prevent werkzeug from bloating cli output
     log = logging.getLogger('werkzeug')
     log.setLevel(logging.ERROR)

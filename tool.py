@@ -1,7 +1,11 @@
 #! /usr/bin/env python
 
-import eventlet
-eventlet.monkey_patch()
+# TODO
+# - channel hopping during deauth
+# - path of capture
+
+# import eventlet
+# eventlet.monkey_patch()
 
 import sys
 import os
@@ -112,13 +116,19 @@ class ConnectionsList():
             if tupel.ssid == "n.a.":
                 tupel.ssid = self._ssid_map.get(tupel.da, "n.a.")
 
+            actual_channel = self._ap_channel_mapping[tupel.ssid] if tupel.ssid in self._ap_channel_mapping else "n.a."
+
+            # Skip packet if we captured it on channel X but it actually belongs to channel Y and we are not looking for it (i.e. a fixed channel is set) TODO
+            # if self._analyzr_core.does_channel_hopping() == False and actual_channel != "n.a." and actual_channel != self._analyzr_core.current_channel: 
+            #     continue
+
             popo.append({
                 "sa": tupel.sa,
                 "sa_vendor": AnalyzrCore.lookup_vendor_by_mac(tupel.sa),
                 "da": tupel.da,
                 "da_vendor": AnalyzrCore.lookup_vendor_by_mac(tupel.da),
                 "ssid": tupel.ssid,
-                "channel": self._ap_channel_mapping[tupel.ssid] if tupel.ssid in self._ap_channel_mapping else "n.a.",
+                "channel": actual_channel,
                 "age": round(now - tupel.ts, 1)
             })
 
@@ -204,8 +214,8 @@ class Tool(IPacketAnalyzer):
 
             # handle beacon frames (8) or probe-resp (5)
             if packet.subtype == 8 or packet.subtype == 5:
-                channel = int(ord(packet[scapy.Dot11Elt:3].info))
-                self._con_list.add_channel_for_ssid(ssid, channel)
+                actual_channel = int(ord(packet[scapy.Dot11Elt:3].info))
+                self._con_list.add_channel_for_ssid(ssid, actual_channel)
 
             return
             

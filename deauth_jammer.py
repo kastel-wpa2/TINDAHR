@@ -45,13 +45,20 @@ class DeauthJammer(object):
 
         proc = None
         capture_prefix = "capture_" + str(time.time())
-        capture_filename = capture_prefix + "-01.cap"
-        capture_filename = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, "captures", capture_filename))
+        capture_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "captures"))
+        capture_filename = os.path.join(capture_dir, capture_prefix)
+        capture_actual_filename = capture_filename + "-01.cap"
+
+        try:
+            os.mkdir(capture_dir)
+        except OSError as err:
+            if err.errno is not 17:
+                raise err
 
         if capture_handshake:
             FNULL = open(os.devnull, 'w')
-            proc = subprocess.Popen(["airodump-ng", "-c", str(channel), "-w", capture_prefix, scapy.conf.iface], stdin=None,
-                                    stderr=FNULL, stdout=FNULL, close_fds=True)  # we might add -a as filter for only capturing unassociated clients
+            proc = subprocess.Popen(["airodump-ng", "-c", str(channel), "-w", capture_filename, scapy.conf.iface], stdin=None,
+                                    stderr=FNULL, stdout=FNULL, close_fds=True)
 
         for target in targets:
             jamThread = threading.Thread(
@@ -75,7 +82,7 @@ class DeauthJammer(object):
                 handshake_captured = True
                 try:
                     pyrit_output = subprocess.check_output(
-                        ["pyrit", "-r", capture_filename, "analyze"])
+                        ["pyrit", "-r", capture_actual_filename, "analyze"])
                 except subprocess.CalledProcessError:
                     handshake_captured = False
 

@@ -101,7 +101,6 @@
                 <div v-if="deauthStep == STEP_DONE">
                     <span v-if="deauthResults.handshake_captured" class="glyphicon glyphicon-ok result_icon green"></span>
                     <span v-if="!deauthResults.handshake_captured" class="glyphicon glyphicon-remove result_icon red"></span>
-                    <span class="glyphicon glyphicon-ok result_icon green"></span>
                     <p>Filename of dump: {{deauthResults.filename}}</p>
                 </div>
             </div>
