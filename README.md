@@ -8,7 +8,7 @@ Your systems needs to have the `aircrack-ng`-suite installed and there should be
 
 Install the needed dependencies with pip: `pip install -r requirements.txt`. You might do this in a `virtual-env`.
 
-# How to use `TINDAHR``
+# How to use `TINDAHR`
 Just run `./tindahr.py` or `./tindahr.py -h` to get information on the flag and options available. No need to run `airmon-ng check kill && airmon-ng start wlan0` first, `TINDAHR` will try to do this for you. After this navigate your webbrowser (should support websockets, in Kali use Firefox ESR) to `localhost:1337`. The rest is pretty much self-explaining. Please respect other people and their digital infrastructure. Never use this against networks you are not permitted to attack!
 
 # What else is in this repository?
