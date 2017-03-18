@@ -52,7 +52,7 @@ class ConnectionsList():
     def __init__(self):
         self._list = set()
         self._ssid_map = dict()
-        self._ap_channel_mapping = dict()        
+        self._ap_channel_mapping = dict()
 
         def threadFn():
             while True:
@@ -119,7 +119,7 @@ class ConnectionsList():
             actual_channel = self._ap_channel_mapping[tupel.ssid] if tupel.ssid in self._ap_channel_mapping else "n.a."
 
             # Skip packet if we captured it on channel X but it actually belongs to channel Y and we are not looking for it (i.e. a fixed channel is set) TODO
-            # if self._analyzr_core.does_channel_hopping() == False and actual_channel != "n.a." and actual_channel != self._analyzr_core.current_channel: 
+            # if self._analyzr_core.does_channel_hopping() == False and actual_channel != "n.a." and actual_channel != self._analyzr_core.current_channel:
             #     continue
 
             popo.append({
@@ -135,7 +135,7 @@ class ConnectionsList():
         return popo
 
 
-class Tool(IPacketAnalyzer):
+class TINDAHR(IPacketAnalyzer):
 
     def __init__(self, mac_filter, use_cli, port, analyzr_core):
         print "Running 'Tool'"
@@ -218,7 +218,7 @@ class Tool(IPacketAnalyzer):
                 self._con_list.add_channel_for_ssid(ssid, actual_channel)
 
             return
-            
+
         # Handle data frames
         self._con_list.add(sa, da)
 
@@ -251,7 +251,7 @@ core.get_arg_parser().add_argument("--cli", dest="use_cli", action="store_true",
                                    help="Use command line interface instead of web ui")
 
 cli_options = core.get_parsed_cli_options()
-tool = Tool(cli_options.mac_filter,
+tool = TINDAHR(cli_options.mac_filter,
             cli_options.use_cli, cli_options.port, core)
 core.register_handler(tool)
 core.start(force_live_capture=True)
