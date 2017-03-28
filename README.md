@@ -13,3 +13,6 @@ Just run `./tindahr.py` or `./tindahr.py -h` to get information on the flag and 
 
 # What else is in this repository?
 There are some scripts for analyzing SSID broadcasting, detection probe requests and responses etcetera in the `analyzr_scripts` directory.
+
+# Known problems
+Currently the implementation used for channel hopping is pretty basic and causes to also switch channels while sending deauthenticaion frames - which might result in not properly submitted packets and/or a missed handshake (because we also capture on the wrong channel in this case). Current workaround: run with `-c` flag in order to specify the channel and disable channel hopping.
