@@ -116,7 +116,8 @@ class ConnectionsList():
             if tupel.ssid == "n.a.":
                 tupel.ssid = self._ssid_map.get(tupel.da, "n.a.")
 
-            actual_channel = self._ap_channel_mapping[tupel.ssid] if tupel.ssid in self._ap_channel_mapping else "n.a."
+            actual_channel = self._ap_channel_mapping[
+                tupel.ssid] if tupel.ssid in self._ap_channel_mapping else "n.a."
 
             # Skip packet if we captured it on channel X but it actually belongs to channel Y and we are not looking for it (i.e. a fixed channel is set) TODO
             # if self._analyzr_core.does_channel_hopping() == False and actual_channel != "n.a." and actual_channel != self._analyzr_core.current_channel:
@@ -174,7 +175,8 @@ class TINDAHR(IPacketAnalyzer):
         # depending on the origin and destination of the packet. It can be inferred looking at "To DS"
         # and "From DS" bits. So we actual do not name BSSID in the following, but it is already what
         # we extract from the packet "To DS" and "From DS" can be checked
-        # here: http://einstein.informatik.uni-oldenburg.de/rechnernetze/frame.htm
+        # here:
+        # http://einstein.informatik.uni-oldenburg.de/rechnernetze/frame.htm
         DS = packet.FCfield & 0x3
         to_DS = DS & 0x1 != 0
         from_DS = DS & 0x2 != 0
@@ -246,7 +248,8 @@ class TINDAHR(IPacketAnalyzer):
         jammer = DeauthJammer(ap_mac, iface)
 
         ssid = self._con_list.get_ssid_for_mac(ap_mac)
-        prefix = str(time.time()) + "__" + target_mac + "__" + ssid + "__c" + str(channel)
+        prefix = str(time.time()) + "__" + target_mac + \
+            "__" + ssid + "__c" + str(channel)
 
         return jammer.jam(target_mac, packet_count=packet_count, capture_handshake=capture_handshake, capture_prefix=prefix, channel=channel)
 
@@ -262,6 +265,6 @@ core.get_arg_parser().add_argument("--cli", dest="use_cli", action="store_true",
 
 cli_options = core.get_parsed_cli_options()
 tool = TINDAHR(cli_options.mac_filter,
-            cli_options.use_cli, cli_options.port, core)
+               cli_options.use_cli, cli_options.port, core)
 core.register_handler(tool)
 core.start(force_live_capture=True)

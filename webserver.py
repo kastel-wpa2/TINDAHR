@@ -3,11 +3,13 @@ from flask_socketio import SocketIO, send, emit
 import logging
 import threading
 
+
 class WebAdapter():
+
     def __init__(self, conn_list_instance, deauth_fn, port=8080):
         self._conn_list_instance = conn_list_instance
         self._deauth_fn = deauth_fn
-        
+
         app = Flask(__name__, static_folder='static', static_url_path=None)
         app.config['SECRET_KEY'] = 'secret!'
 
@@ -25,7 +27,7 @@ class WebAdapter():
 
         def start():
             t.start()
-            print "Started server on localhost:%i" % (port) 
+            print "Started server on localhost:%i" % (port)
 
         self.start = start
 
@@ -34,7 +36,8 @@ class WebAdapter():
 
     def _start_deauth(self, opts):
         print "Receveived request for deauth attack, starting..."
-        results = self._deauth_fn(opts["target_mac"], opts["ap_mac"], int(opts["channel"]), int(opts["deauth_packets_amount"]), opts["capture_handshake"])
+        results = self._deauth_fn(opts["target_mac"], opts["ap_mac"], int(
+            opts["channel"]), int(opts["deauth_packets_amount"]), opts["capture_handshake"])
         print "Deauth done"
         emit("deauth_done", results, json=True)
 

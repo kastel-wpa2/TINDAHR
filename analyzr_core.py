@@ -87,7 +87,8 @@ class AnalyzrCore():
         # try:
         print "Reading from file..."
         filename = os.path.abspath(filename)
-        scapy.sniff(offline=filename, filter=bpf_filter, prn=self._process_packet)
+        scapy.sniff(offline=filename, filter=bpf_filter,
+                    prn=self._process_packet)
 
         print "Reading from file done!"
 
